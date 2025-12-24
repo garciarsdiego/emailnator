@@ -1,19 +1,32 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { EmailGenerator } from "@/components/EmailGenerator";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Dashboard() {
-  const { user, loading } = useAuth();
+  const { user, loading, checkSubscription } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
+
+  // Handle payment success
+  useEffect(() => {
+    const payment = searchParams.get("payment");
+    if (payment === "success") {
+      toast.success("Pagamento realizado com sucesso! Seus créditos foram atualizados.");
+      checkSubscription();
+      // Clean URL
+      window.history.replaceState({}, "", "/dashboard");
+    }
+  }, [searchParams, checkSubscription]);
 
   if (loading) {
     return (
