@@ -9,7 +9,9 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { EmailOptionsSelector } from "./EmailOptionsSelector";
 import { RichTextEditor } from "./RichTextEditor";
+import { VariablesHelper } from "./VariablesHelper";
 import { BrandManual } from "@/hooks/useBrandManual";
+import { replaceVariablesWithDummy } from "@/lib/emailVariables";
 
 interface BrandColors {
   primary?: string;
@@ -175,61 +177,69 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
       .replace(/<a /g, `<a style="color: ${accentColor}; text-decoration: underline;" `);
   };
 
-  // Preview content component
-  const PreviewContent = () => (
-    <div 
-      className="rounded-lg border border-border overflow-hidden"
-      style={{ backgroundColor }}
-    >
-      {brandName && (
-        <div className="px-4 py-3 border-b-2" style={{ borderColor: primaryColor }}>
-          <span className="font-bold" style={{ color: primaryColor }}>{brandName}</span>
-        </div>
-      )}
-      <div className="p-4 sm:p-6 space-y-4">
-        {/* Subject & Preheader */}
-        <div className="space-y-2 pb-4 border-b" style={{ borderColor: `${primaryColor}20` }}>
-          <div>
-            <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: `${bgTextColor}60` }}>
-              Assunto
-            </p>
-            <p className="font-semibold text-base" style={{ color: bgTextColor }}>
-              {selectedSubject || <span className="opacity-40 italic">Selecione...</span>}
-            </p>
-          </div>
-          <div>
-            <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: `${bgTextColor}60` }}>
-              Pré-header
-            </p>
-            <p className="text-sm" style={{ color: `${bgTextColor}80` }}>
-              {selectedPreheader || <span className="opacity-40 italic">Selecione...</span>}
-            </p>
-          </div>
-        </div>
+  // Preview content component - uses dummy values for variables
+  const PreviewContent = () => {
+    const previewSubject = replaceVariablesWithDummy(selectedSubject);
+    const previewPreheader = replaceVariablesWithDummy(selectedPreheader);
+    const previewContent = replaceVariablesWithDummy(editableContent);
+    const previewCta = replaceVariablesWithDummy(selectedCta);
+    const previewBrandName = brandName ? replaceVariablesWithDummy(brandName) : null;
 
-        {/* Email Content */}
-        <div
-          className="text-sm leading-relaxed [&>*]:!m-0 [&>*]:!mb-3 [&_ul]:!pl-5 [&_ol]:!pl-5 [&_li]:!mb-1"
-          style={{ color: bgTextColor, fontFamily: 'Arial, sans-serif' }}
-          dangerouslySetInnerHTML={{ __html: sanitizeHtmlForPreview(editableContent) }}
-        />
+    return (
+      <div 
+        className="rounded-lg border border-border overflow-hidden"
+        style={{ backgroundColor }}
+      >
+        {previewBrandName && (
+          <div className="px-4 py-3 border-b-2" style={{ borderColor: primaryColor }}>
+            <span className="font-bold" style={{ color: primaryColor }}>{previewBrandName}</span>
+          </div>
+        )}
+        <div className="p-4 sm:p-6 space-y-4">
+          {/* Subject & Preheader */}
+          <div className="space-y-2 pb-4 border-b" style={{ borderColor: `${primaryColor}20` }}>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: `${bgTextColor}60` }}>
+                Assunto
+              </p>
+              <p className="font-semibold text-base" style={{ color: bgTextColor }}>
+                {previewSubject || <span className="opacity-40 italic">Selecione...</span>}
+              </p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide mb-1" style={{ color: `${bgTextColor}60` }}>
+                Pré-header
+              </p>
+              <p className="text-sm" style={{ color: `${bgTextColor}80` }}>
+                {previewPreheader || <span className="opacity-40 italic">Selecione...</span>}
+              </p>
+            </div>
+          </div>
 
-        {/* CTA Button */}
-        <div className="pt-4 text-center">
-          <span 
-            className="inline-block rounded-lg px-6 py-3 font-semibold"
-            style={{ 
-              backgroundColor: primaryColor, 
-              color: buttonTextColor,
-              boxShadow: `0 4px 14px ${primaryColor}40`
-            }}
-          >
-            {selectedCta || "Selecione um CTA..."}
-          </span>
+          {/* Email Content */}
+          <div
+            className="text-sm leading-relaxed [&>*]:!m-0 [&>*]:!mb-3 [&_ul]:!pl-5 [&_ol]:!pl-5 [&_li]:!mb-1"
+            style={{ color: bgTextColor, fontFamily: 'Arial, sans-serif' }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtmlForPreview(previewContent) }}
+          />
+
+          {/* CTA Button */}
+          <div className="pt-4 text-center">
+            <span 
+              className="inline-block rounded-lg px-6 py-3 font-semibold"
+              style={{ 
+                backgroundColor: primaryColor, 
+                color: buttonTextColor,
+                boxShadow: `0 4px 14px ${primaryColor}40`
+              }}
+            >
+              {previewCta || "Selecione um CTA..."}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -369,23 +379,25 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
           </Card>
         </div>
 
-        {/* Content Editor */}
         <Card className="glass-card">
           <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-2">
               <CardTitle className="text-sm font-medium">✏️ Conteúdo do Email</CardTitle>
-              <Tabs value={editorMode} onValueChange={(v) => setEditorMode(v as "rich" | "html")}>
-                <TabsList className="h-7">
-                  <TabsTrigger value="rich" className="text-xs px-2.5 h-6">
-                    <Type className="h-3 w-3 mr-1" />
-                    Visual
-                  </TabsTrigger>
-                  <TabsTrigger value="html" className="text-xs px-2.5 h-6">
-                    <Code className="h-3 w-3 mr-1" />
-                    HTML
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="flex items-center gap-2">
+                <VariablesHelper />
+                <Tabs value={editorMode} onValueChange={(v) => setEditorMode(v as "rich" | "html")}>
+                  <TabsList className="h-7">
+                    <TabsTrigger value="rich" className="text-xs px-2.5 h-6">
+                      <Type className="h-3 w-3 mr-1" />
+                      Visual
+                    </TabsTrigger>
+                    <TabsTrigger value="html" className="text-xs px-2.5 h-6">
+                      <Code className="h-3 w-3 mr-1" />
+                      HTML
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="px-3 sm:px-4 pb-4">
