@@ -28,16 +28,18 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
-      <main className="container flex-1 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Gerador de Emails</h1>
-          <p className="text-muted-foreground text-sm">
-            Crie emails de marketing profissionais com IA
-          </p>
+      <main className="flex-1 overflow-y-auto">
+        <div className="container py-6">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-foreground">Gerador de Emails</h1>
+            <p className="text-muted-foreground text-sm">
+              Crie emails de marketing profissionais com IA
+            </p>
+          </div>
+          <EmailGenerator />
         </div>
-        <EmailGenerator />
       </main>
     </div>
   );
