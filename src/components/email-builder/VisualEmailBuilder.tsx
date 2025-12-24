@@ -8,10 +8,12 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Eye, Code, Trash2, Save } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Download, Eye, Code, Trash2, Save, Monitor, Smartphone, Star } from "lucide-react";
 import { toast } from "sonner";
 import { EmailBlock } from "@/types/emailBuilder";
 import { createBlocksFromEmailData } from "@/lib/htmlToBlocks";
+import { cn } from "@/lib/utils";
 
 export interface EmailContent {
   subject?: string;
@@ -24,7 +26,7 @@ export interface EmailContent {
 interface VisualEmailBuilderProps {
   initialBlocks?: EmailBlock[];
   initialContent?: EmailContent;
-  onSave?: (blocks: EmailBlock[], html: string, metadata?: { subject: string; preheader: string }) => void;
+  onSave?: (blocks: EmailBlock[], html: string, metadata?: { subject: string; preheader: string; templateName?: string }) => void;
   onCancel?: () => void;
   showMetadataFields?: boolean;
 }
@@ -36,7 +38,6 @@ export function VisualEmailBuilder({
   onCancel,
   showMetadataFields = false,
 }: VisualEmailBuilderProps) {
-  // Convert initial content to blocks if provided
   const getInitialBlocks = () => {
     if (initialBlocks) return initialBlocks;
     if (initialContent?.content) {
@@ -59,10 +60,13 @@ export function VisualEmailBuilder({
   } = useEmailBlocks(getInitialBlocks());
 
   const [previewMode, setPreviewMode] = useState<"edit" | "preview" | "html">("edit");
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [subject, setSubject] = useState(initialContent?.subject || "");
   const [preheader, setPreheader] = useState(initialContent?.preheader || "");
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [showLivePreview, setShowLivePreview] = useState(true);
 
-  // Update subject/preheader if initialContent changes
   useEffect(() => {
     if (initialContent) {
       setSubject(initialContent.subject || "");
@@ -78,12 +82,20 @@ export function VisualEmailBuilder({
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email</title>
+  <title>${subject || 'Email'}</title>
   <style>
     body { margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4; }
     .email-container { max-width: 600px; margin: 0 auto; background-color: #ffffff; }
     .button { display: inline-block; text-decoration: none; font-weight: 500; }
     .social-icon { display: inline-block; width: 32px; height: 32px; border-radius: 50%; background: #e5e7eb; text-align: center; line-height: 32px; margin: 0 4px; }
+    .countdown-box { display: inline-block; padding: 10px 15px; margin: 0 5px; border-radius: 8px; text-align: center; }
+    .countdown-number { font-size: 24px; font-weight: bold; display: block; }
+    .countdown-label { font-size: 10px; text-transform: uppercase; }
+    .product-card { border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; }
+    .product-image { width: 100%; height: auto; }
+    .product-info { padding: 15px; }
+    .product-price { font-size: 20px; font-weight: bold; color: #22c55e; }
+    .product-old-price { font-size: 14px; color: #999; text-decoration: line-through; margin-left: 8px; }
   </style>
 </head>
 <body>
@@ -143,9 +155,64 @@ export function VisualEmailBuilder({
           <p style="margin: 10px 0;"><a href="#" style="color: #666;">${content.unsubscribeText || 'Cancelar inscrição'}</a></p>
         </div>`;
 
+      case "video":
+        const thumbnailUrl = content.videoThumbnail || `https://img.youtube.com/vi/${extractYouTubeId(content.videoUrl || '')}/maxresdefault.jpg`;
+        return `<div style="text-align: center; padding: 20px 0;">
+          <a href="${content.videoUrl || '#'}" style="display: block; position: relative;">
+            <img src="${thumbnailUrl}" alt="${content.videoTitle || 'Vídeo'}" style="max-width: 100%; border-radius: 8px;" />
+            <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 60px; height: 60px; background: rgba(0,0,0,0.7); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+              <div style="width: 0; height: 0; border-left: 20px solid white; border-top: 12px solid transparent; border-bottom: 12px solid transparent; margin-left: 5px;"></div>
+            </div>
+          </a>
+          ${content.videoTitle ? `<p style="margin-top: 10px; font-weight: 500;">${content.videoTitle}</p>` : ''}
+        </div>`;
+
+      case "countdown":
+        return `<div style="text-align: center; padding: 20px; background-color: ${content.countdownBgColor || '#6366f1'}; color: ${content.countdownTextColor || '#ffffff'}; border-radius: 8px;">
+          <p style="margin: 0 0 15px 0; font-size: 16px;">${content.countdownTitle || 'Oferta termina em:'}</p>
+          <div>
+            <span class="countdown-box" style="background: rgba(255,255,255,0.2);">
+              <span class="countdown-number">00</span>
+              <span class="countdown-label">Dias</span>
+            </span>
+            <span class="countdown-box" style="background: rgba(255,255,255,0.2);">
+              <span class="countdown-number">00</span>
+              <span class="countdown-label">Horas</span>
+            </span>
+            <span class="countdown-box" style="background: rgba(255,255,255,0.2);">
+              <span class="countdown-number">00</span>
+              <span class="countdown-label">Min</span>
+            </span>
+            <span class="countdown-box" style="background: rgba(255,255,255,0.2);">
+              <span class="countdown-number">00</span>
+              <span class="countdown-label">Seg</span>
+            </span>
+          </div>
+          <p style="margin: 10px 0 0 0; font-size: 12px; opacity: 0.8;">Termina em: ${content.countdownDate || ''}</p>
+        </div>`;
+
+      case "product":
+        return `<div class="product-card" style="border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; max-width: 300px; margin: 20px auto;">
+          ${content.productImage ? `<img src="${content.productImage}" alt="${content.productName}" class="product-image" style="width: 100%; height: auto;" />` : '<div style="height: 200px; background: #f4f4f4; display: flex; align-items: center; justify-content: center; color: #999;">Sem imagem</div>'}
+          <div class="product-info" style="padding: 15px;">
+            <h3 style="margin: 0 0 10px 0; font-size: 16px;">${content.productName || 'Nome do Produto'}</h3>
+            <p style="margin: 0 0 10px 0; font-size: 13px; color: #666;">${content.productDescription || ''}</p>
+            <div style="margin-bottom: 15px;">
+              <span class="product-price" style="font-size: 20px; font-weight: bold; color: #22c55e;">${content.productPrice || ''}</span>
+              ${content.productOldPrice ? `<span class="product-old-price" style="font-size: 14px; color: #999; text-decoration: line-through; margin-left: 8px;">${content.productOldPrice}</span>` : ''}
+            </div>
+            <a href="${content.productUrl || '#'}" style="display: block; text-align: center; background: #6366f1; color: white; padding: 10px; border-radius: 6px; text-decoration: none; font-weight: 500;">Comprar Agora</a>
+          </div>
+        </div>`;
+
       default:
         return '';
     }
+  };
+
+  const extractYouTubeId = (url: string): string => {
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    return match ? match[1] : '';
   };
 
   const handleExportHTML = () => {
@@ -161,8 +228,19 @@ export function VisualEmailBuilder({
   };
 
   const handleSave = () => {
+    if (showMetadataFields) {
+      setShowSaveDialog(true);
+    } else {
+      const html = generateHTML();
+      onSave?.(blocks, html, { subject, preheader });
+    }
+  };
+
+  const handleConfirmSave = () => {
     const html = generateHTML();
-    onSave?.(blocks, html, { subject, preheader });
+    onSave?.(blocks, html, { subject, preheader, templateName: templateName || undefined });
+    setShowSaveDialog(false);
+    setTemplateName("");
   };
 
   return (
@@ -196,39 +274,72 @@ export function VisualEmailBuilder({
       )}
 
       {/* Toolbar */}
-      <div className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur">
+      <div className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Tabs value={previewMode} onValueChange={(v) => setPreviewMode(v as typeof previewMode)}>
-            <TabsList>
-              <TabsTrigger value="edit">Editar</TabsTrigger>
-              <TabsTrigger value="preview">
-                <Eye className="h-4 w-4 mr-1" />
+            <TabsList className="h-8">
+              <TabsTrigger value="edit" className="text-xs px-3 h-7">Editar</TabsTrigger>
+              <TabsTrigger value="preview" className="text-xs px-3 h-7">
+                <Eye className="h-3.5 w-3.5 mr-1" />
                 Preview
               </TabsTrigger>
-              <TabsTrigger value="html">
-                <Code className="h-4 w-4 mr-1" />
+              <TabsTrigger value="html" className="text-xs px-3 h-7">
+                <Code className="h-3.5 w-3.5 mr-1" />
                 HTML
               </TabsTrigger>
             </TabsList>
           </Tabs>
+
+          {previewMode === "preview" && (
+            <div className="flex items-center gap-1 ml-2">
+              <Button
+                variant={previewDevice === "desktop" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setPreviewDevice("desktop")}
+              >
+                <Monitor className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={previewDevice === "mobile" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => setPreviewDevice("mobile")}
+              >
+                <Smartphone className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {previewMode === "edit" && (
+            <Button
+              variant={showLivePreview ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 text-xs ml-2"
+              onClick={() => setShowLivePreview(!showLivePreview)}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1" />
+              Live
+            </Button>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={clearBlocks}>
-            <Trash2 className="h-4 w-4 mr-1" />
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={clearBlocks}>
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
             Limpar
           </Button>
-          <Button variant="outline" size="sm" onClick={handleExportHTML}>
-            <Download className="h-4 w-4 mr-1" />
-            Exportar HTML
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleExportHTML}>
+            <Download className="h-3.5 w-3.5 mr-1" />
+            HTML
           </Button>
           {onCancel && (
-            <Button variant="ghost" size="sm" onClick={onCancel}>
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={onCancel}>
               Cancelar
             </Button>
           )}
           {onSave && (
-            <Button size="sm" onClick={handleSave}>
-              <Save className="h-4 w-4 mr-1" />
+            <Button size="sm" className="h-7 text-xs" onClick={handleSave}>
+              <Save className="h-3.5 w-3.5 mr-1" />
               Salvar
             </Button>
           )}
@@ -240,24 +351,68 @@ export function VisualEmailBuilder({
         {previewMode === "edit" && (
           <>
             {/* Left sidebar - Block palette */}
-            <div className="w-48 border-r p-3 overflow-y-auto bg-muted/30">
+            <div className="w-44 border-r p-2 overflow-y-auto bg-muted/30">
               <BlockPalette onAddBlock={addBlock} />
             </div>
 
-            {/* Center - Canvas */}
-            <div className="flex-1 p-4 overflow-auto bg-muted/20">
-              <EmailCanvas
-                blocks={blocks}
-                selectedBlockId={selectedBlockId}
-                onSelectBlock={setSelectedBlockId}
-                onMoveBlock={moveBlock}
-                onRemoveBlock={removeBlock}
-                onDuplicateBlock={duplicateBlock}
-              />
+            {/* Center - Canvas + Live Preview */}
+            <div className="flex-1 flex overflow-hidden">
+              {/* Canvas */}
+              <div className={cn(
+                "p-4 overflow-auto bg-muted/20",
+                showLivePreview ? "flex-1" : "flex-1"
+              )}>
+                <EmailCanvas
+                  blocks={blocks}
+                  selectedBlockId={selectedBlockId}
+                  onSelectBlock={setSelectedBlockId}
+                  onMoveBlock={moveBlock}
+                  onRemoveBlock={removeBlock}
+                  onDuplicateBlock={duplicateBlock}
+                />
+              </div>
+
+              {/* Live Preview */}
+              {showLivePreview && (
+                <div className="w-80 border-l bg-background p-3 overflow-hidden flex flex-col">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted-foreground">Live Preview</span>
+                    <div className="flex gap-1">
+                      <Button
+                        variant={previewDevice === "desktop" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setPreviewDevice("desktop")}
+                      >
+                        <Monitor className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant={previewDevice === "mobile" ? "secondary" : "ghost"}
+                        size="sm"
+                        className="h-6 w-6 p-0"
+                        onClick={() => setPreviewDevice("mobile")}
+                      >
+                        <Smartphone className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="flex-1 overflow-auto rounded border bg-white">
+                    <iframe
+                      srcDoc={generateHTML()}
+                      className={cn(
+                        "border-0 transition-all",
+                        previewDevice === "mobile" ? "w-[320px] mx-auto" : "w-full"
+                      )}
+                      style={{ minHeight: "400px", height: "100%" }}
+                      title="Live Preview"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Right sidebar - Block editor */}
-            <div className="w-72 border-l p-4 overflow-y-auto bg-background">
+            <div className="w-64 border-l p-3 overflow-y-auto bg-background">
               {selectedBlock ? (
                 <BlockEditor
                   block={selectedBlock}
@@ -265,7 +420,8 @@ export function VisualEmailBuilder({
                 />
               ) : (
                 <div className="text-center text-muted-foreground py-8">
-                  <p>Selecione um bloco para editar</p>
+                  <p className="text-sm">Selecione um bloco para editar</p>
+                  <p className="text-xs mt-2">ou arraste blocos da paleta</p>
                 </div>
               )}
             </div>
@@ -274,7 +430,10 @@ export function VisualEmailBuilder({
 
         {previewMode === "preview" && (
           <div className="flex-1 p-4 overflow-auto bg-muted/20">
-            <div className="max-w-[600px] mx-auto">
+            <div className={cn(
+              "mx-auto transition-all",
+              previewDevice === "mobile" ? "max-w-[375px]" : "max-w-[600px]"
+            )}>
               <Card className="overflow-hidden">
                 <iframe
                   srcDoc={generateHTML()}
@@ -296,6 +455,41 @@ export function VisualEmailBuilder({
           </div>
         )}
       </div>
+
+      {/* Save Template Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="h-5 w-5 text-yellow-500" />
+              Salvar como Template
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label>Nome do template</Label>
+              <Input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="Ex: Email de Boas-vindas"
+              />
+            </div>
+            <div className="p-3 bg-muted/50 rounded-lg space-y-1">
+              <p className="text-xs text-muted-foreground">Assunto:</p>
+              <p className="text-sm font-medium">{subject || "(sem assunto)"}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleConfirmSave}>
+                <Save className="h-4 w-4 mr-2" />
+                Salvar Template
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

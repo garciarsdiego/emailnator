@@ -15,7 +15,10 @@ export type BlockType =
   | "divider"
   | "spacer"
   | "social"
-  | "footer";
+  | "footer"
+  | "video"
+  | "countdown"
+  | "product";
 
 export interface BlockContent {
   // Header
@@ -58,6 +61,25 @@ export interface BlockContent {
   companyName?: string;
   address?: string;
   unsubscribeText?: string;
+
+  // Video
+  videoUrl?: string;
+  videoThumbnail?: string;
+  videoTitle?: string;
+
+  // Countdown
+  countdownDate?: string;
+  countdownTitle?: string;
+  countdownBgColor?: string;
+  countdownTextColor?: string;
+
+  // Product
+  productName?: string;
+  productImage?: string;
+  productPrice?: string;
+  productOldPrice?: string;
+  productDescription?: string;
+  productUrl?: string;
 }
 
 export interface EmailBlockDefinition {
@@ -108,5 +130,24 @@ export const DEFAULT_BLOCKS: Record<BlockType, BlockContent> = {
     companyName: "Sua Empresa",
     address: "Seu endereço aqui",
     unsubscribeText: "Clique aqui para cancelar inscrição",
+  },
+  video: {
+    videoUrl: "",
+    videoThumbnail: "",
+    videoTitle: "Assista ao vídeo",
+  },
+  countdown: {
+    countdownDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    countdownTitle: "Oferta termina em:",
+    countdownBgColor: "#6366f1",
+    countdownTextColor: "#ffffff",
+  },
+  product: {
+    productName: "Nome do Produto",
+    productImage: "",
+    productPrice: "R$ 99,90",
+    productOldPrice: "R$ 149,90",
+    productDescription: "Descrição do produto aqui...",
+    productUrl: "#",
   },
 };

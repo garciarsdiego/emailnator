@@ -287,11 +287,11 @@ export function EmailGenerator() {
   };
 
   // Handle saving from visual editor
-  const handleVisualSave = async (blocks: any[], html: string, metadata?: { subject: string; preheader: string }) => {
+  const handleVisualSave = async (blocks: any[], html: string, metadata?: { subject: string; preheader: string; templateName?: string }) => {
     if (metadata) {
       try {
         await saveTemplate.mutateAsync({
-          name: `Visual - ${metadata.subject.slice(0, 30)}...`,
+          name: metadata.templateName || `Visual - ${metadata.subject.slice(0, 30)}...`,
           subject: metadata.subject,
           preheader: metadata.preheader,
           content: html,

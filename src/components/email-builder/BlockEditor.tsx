@@ -374,6 +374,138 @@ export function BlockEditor({ block, onUpdate }: BlockEditorProps) {
         </div>
       );
 
+    case "video":
+      return (
+        <div className="space-y-4">
+          <h4 className="font-medium">Vídeo</h4>
+          <div className="space-y-2">
+            <Label>URL do vídeo (YouTube/Vimeo)</Label>
+            <Input
+              value={content.videoUrl || ""}
+              onChange={(e) => onUpdate({ videoUrl: e.target.value })}
+              placeholder="https://youtube.com/watch?v=..."
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Thumbnail (opcional)</Label>
+            <Input
+              value={content.videoThumbnail || ""}
+              onChange={(e) => onUpdate({ videoThumbnail: e.target.value })}
+              placeholder="URL da imagem de capa"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Título</Label>
+            <Input
+              value={content.videoTitle || ""}
+              onChange={(e) => onUpdate({ videoTitle: e.target.value })}
+              placeholder="Assista ao vídeo"
+            />
+          </div>
+        </div>
+      );
+
+    case "countdown":
+      return (
+        <div className="space-y-4">
+          <h4 className="font-medium">Contador Regressivo</h4>
+          <div className="space-y-2">
+            <Label>Data de término</Label>
+            <Input
+              type="date"
+              value={content.countdownDate || ""}
+              onChange={(e) => onUpdate({ countdownDate: e.target.value })}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Título</Label>
+            <Input
+              value={content.countdownTitle || ""}
+              onChange={(e) => onUpdate({ countdownTitle: e.target.value })}
+              placeholder="Oferta termina em:"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label>Cor de fundo</Label>
+              <Input
+                type="color"
+                value={content.countdownBgColor || "#6366f1"}
+                onChange={(e) => onUpdate({ countdownBgColor: e.target.value })}
+                className="h-9 p-1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Cor do texto</Label>
+              <Input
+                type="color"
+                value={content.countdownTextColor || "#ffffff"}
+                onChange={(e) => onUpdate({ countdownTextColor: e.target.value })}
+                className="h-9 p-1"
+              />
+            </div>
+          </div>
+        </div>
+      );
+
+    case "product":
+      return (
+        <div className="space-y-4">
+          <h4 className="font-medium">Produto</h4>
+          <div className="space-y-2">
+            <Label>Nome do produto</Label>
+            <Input
+              value={content.productName || ""}
+              onChange={(e) => onUpdate({ productName: e.target.value })}
+              placeholder="Nome do Produto"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>URL da imagem</Label>
+            <Input
+              value={content.productImage || ""}
+              onChange={(e) => onUpdate({ productImage: e.target.value })}
+              placeholder="https://..."
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-2">
+              <Label>Preço atual</Label>
+              <Input
+                value={content.productPrice || ""}
+                onChange={(e) => onUpdate({ productPrice: e.target.value })}
+                placeholder="R$ 99,90"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Preço antigo</Label>
+              <Input
+                value={content.productOldPrice || ""}
+                onChange={(e) => onUpdate({ productOldPrice: e.target.value })}
+                placeholder="R$ 149,90"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Textarea
+              value={content.productDescription || ""}
+              onChange={(e) => onUpdate({ productDescription: e.target.value })}
+              placeholder="Descrição do produto..."
+              rows={2}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Link de compra</Label>
+            <Input
+              value={content.productUrl || ""}
+              onChange={(e) => onUpdate({ productUrl: e.target.value })}
+              placeholder="https://..."
+            />
+          </div>
+        </div>
+      );
+
     default:
       return <div className="text-muted-foreground">Selecione um bloco para editar</div>;
   }
