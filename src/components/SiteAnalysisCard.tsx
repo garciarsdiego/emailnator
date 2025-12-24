@@ -10,10 +10,12 @@ import {
   MessageSquare, 
   Tag, 
   ExternalLink,
-  Quote
+  Quote,
+  Globe
 } from "lucide-react";
 
 interface SiteAnalysis {
+  language?: string;
   brandName: string;
   description: string;
   slogan?: string;
@@ -63,6 +65,18 @@ const TONE_LABELS: Record<string, string> = {
   emotional: "Emocional",
 };
 
+const LANGUAGE_LABELS: Record<string, string> = {
+  "pt-BR": "🇧🇷 Português (Brasil)",
+  "pt-PT": "🇵🇹 Português (Portugal)",
+  "en-US": "🇺🇸 English (US)",
+  "en-GB": "🇬🇧 English (UK)",
+  "es": "🇪🇸 Español",
+  "es-MX": "🇲🇽 Español (México)",
+  "fr": "🇫🇷 Français",
+  "de": "🇩🇪 Deutsch",
+  "it": "🇮🇹 Italiano",
+};
+
 const OFFER_LABELS: Record<string, string> = {
   discount: "Desconto",
   coupon: "Cupom",
@@ -91,6 +105,12 @@ export function SiteAnalysisCard({ analysis }: SiteAnalysisCardProps) {
             <CardTitle className="flex items-center gap-2 text-lg">
               <Building2 className="h-5 w-5 text-accent" />
               {analysis.brandName}
+              {analysis.language && (
+                <Badge variant="outline" className="ml-2 text-xs">
+                  <Globe className="h-3 w-3 mr-1" />
+                  {LANGUAGE_LABELS[analysis.language] || analysis.language}
+                </Badge>
+              )}
             </CardTitle>
             <p className="text-sm text-muted-foreground mt-1">{analysis.description}</p>
             {analysis.slogan && (

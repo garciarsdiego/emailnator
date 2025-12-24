@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 interface SiteAnalysis {
+  language?: string;
   brandName?: string;
   description?: string;
   slogan?: string;
@@ -60,12 +61,20 @@ serve(async (req) => {
   }
 
   try {
-    const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, contentReference, language = "pt-BR" } = await req.json() as EmailRequest;
+    const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, contentReference } = await req.json() as EmailRequest;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
+
+    // Detect language from site analysis or default to Portuguese
+    const detectedLanguage = siteAnalysis?.language || "pt-BR";
+    const isEnglish = detectedLanguage.startsWith("en");
+    const isSpanish = detectedLanguage.startsWith("es");
+    const isFrench = detectedLanguage.startsWith("fr");
+    const isGerman = detectedLanguage.startsWith("de");
+    const isItalian = detectedLanguage.startsWith("it");
 
     const nicheDescriptions: Record<string, string> = {
       fashion: "moda e vestuário",
@@ -167,54 +176,81 @@ IMPORTANTE: O email deve focar neste conteúdo específico. Mencione-o de forma 
       ? `Use o tom "${toneDescriptions[effectiveTone] || effectiveTone}" que é o estilo natural da marca.`
       : `Use o tom ${toneDescriptions[tone] || tone} conforme solicitado.`;
 
-    const systemPrompt = `Você é um especialista em email marketing para e-commerce brasileiro. Sua função é criar emails de marketing altamente persuasivos, personalizados e otimizados para conversão.
+    // Build language-specific instructions
+    const languageInstructions = isEnglish 
+      ? `LANGUAGE: Write ALL content in English (US).
+Use American English spelling and idioms.
+Currency format: $XX.XX`
+      : isSpanish
+      ? `LANGUAGE: Write ALL content in Spanish.
+Use Latin American Spanish for broader reach.
+Currency format: depends on the country`
+      : isFrench
+      ? `LANGUAGE: Write ALL content in French.
+Use standard French.
+Currency format: XX,XX €`
+      : isGerman
+      ? `LANGUAGE: Write ALL content in German.
+Use standard German.
+Currency format: XX,XX €`
+      : isItalian
+      ? `LANGUAGE: Write ALL content in Italian.
+Use standard Italian.
+Currency format: XX,XX €`
+      : `LANGUAGE: Write ALL content in Brazilian Portuguese.
+Use Brazilian Portuguese spelling and idioms.
+Currency format: R$ XX,XX`;
 
-REGRAS OBRIGATÓRIAS:
-1. Escreva SEMPRE em português brasileiro
-2. Assuntos devem ter no máximo 50 caracteres
-3. Inclua emojis estratégicos no assunto e corpo do email
-4. Use técnicas de copywriting como urgência, escassez, prova social
-5. O email deve ser responsivo e funcionar bem em mobile
-6. Personalize com {{nome}} onde apropriado
-7. Use bullet points para benefícios
-8. Mantenha parágrafos curtos (2-3 linhas)
+    const systemPrompt = `You are an expert in e-commerce email marketing. Your function is to create highly persuasive, personalized, and conversion-optimized marketing emails.
 
-PERSONALIZAÇÃO COM BASE NA ANÁLISE:
-- Se houver informações da marca, USE o tom e estilo de comunicação dela
-- Se houver ofertas ativas, INCORPORE-AS naturalmente no email
-- Se houver expressões frequentes da marca, USE-AS no copy
-- Mantenha consistência com a identidade visual e verbal da marca
+${languageInstructions}
+
+MANDATORY RULES:
+1. Subject lines must have a maximum of 50 characters
+2. Include strategic emojis in the subject and email body
+3. Use copywriting techniques like urgency, scarcity, social proof
+4. The email must be responsive and work well on mobile
+5. Personalize with {{nome}} or {{name}} where appropriate
+6. Use bullet points for benefits
+7. Keep paragraphs short (2-3 lines)
+
+PERSONALIZATION BASED ON ANALYSIS:
+- If brand information is available, USE its tone and communication style
+- If there are active offers, INCORPORATE them naturally into the email
+- If there are frequent brand expressions, USE them in the copy
+- Maintain consistency with the visual and verbal identity of the brand
 - ${toneInstruction}
 
-FORMATO DE RESPOSTA:
-Retorne um JSON válido com a seguinte estrutura:
+RESPONSE FORMAT:
+Return a valid JSON with the following structure:
 {
-  "subjects": ["Assunto 1 (max 50 chars)", "Assunto 2 (max 50 chars)", "Assunto 3 (max 50 chars)"],
-  "subjectsResend": ["Assunto reenvio 1", "Assunto reenvio 2", "Assunto reenvio 3"],
-  "preheaders": ["Pré-header 1 (max 100 chars)", "Pré-header 2 (max 100 chars)", "Pré-header 3 (max 100 chars)"],
+  "subjects": ["Subject 1 (max 50 chars)", "Subject 2 (max 50 chars)", "Subject 3 (max 50 chars)"],
+  "subjectsResend": ["Resend subject 1", "Resend subject 2", "Resend subject 3"],
+  "preheaders": ["Preheader 1 (max 100 chars)", "Preheader 2 (max 100 chars)", "Preheader 3 (max 100 chars)"],
   "ctas": ["CTA 1", "CTA 2", "CTA 3"],
-  "content": "Corpo do email em HTML simples",
-  "tips": ["Dica 1 de otimização", "Dica 2 de otimização"]
+  "content": "Email body in simple HTML",
+  "tips": ["Optimization tip 1", "Optimization tip 2"]
 }
 
-REGRAS PARA VARIAÇÕES:
-- Os 3 assuntos de primeiro envio devem ter abordagens diferentes: 1 com urgência, 1 com curiosidade, 1 com benefício direto
-- Os 3 assuntos de reenvio/A-B devem ser reformulações criativas dos primeiros, para quem não abriu
-- Os 3 pré-headers devem complementar os assuntos, não repetir
-- Os 3 CTAs devem variar em intensidade: 1 direto, 1 suave, 1 com urgência`;
+RULES FOR VARIATIONS:
+- The 3 first-send subjects should have different approaches: 1 with urgency, 1 with curiosity, 1 with direct benefit
+- The 3 resend/A-B subjects should be creative reformulations of the first ones, for those who didn't open
+- The 3 preheaders should complement the subjects, not repeat them
+- The 3 CTAs should vary in intensity: 1 direct, 1 soft, 1 with urgency`;
 
-    const userPrompt = `Crie um email de marketing com as seguintes especificações:
+    const userPrompt = `Create a marketing email with the following specifications:
 
-NICHO: ${nicheDescriptions[niche] || niche}
-TIPO DE CAMPANHA: ${campaignTypeDescriptions[campaignType] || campaignType}
-TOM SOLICITADO: ${toneDescriptions[tone] || tone}
-PÚBLICO-ALVO: ${targetAudience}
+DETECTED LANGUAGE: ${detectedLanguage}
+NICHE: ${nicheDescriptions[niche] || niche}
+CAMPAIGN TYPE: ${campaignTypeDescriptions[campaignType] || campaignType}
+REQUESTED TONE: ${toneDescriptions[tone] || tone}
+TARGET AUDIENCE: ${targetAudience}
 ${brandContext}
 ${contentReferenceContext}
 
-Gere um email completo com 3 opções de assunto (primeiro envio), 3 opções de assunto (reenvio/A-B), 3 opções de pré-header e 3 opções de CTA. O corpo do email deve ser único mas otimizado.`;
+Generate a complete email with 3 subject options (first send), 3 subject options (resend/A-B), 3 preheader options, and 3 CTA options. The email body should be unique but optimized. WRITE EVERYTHING IN ${detectedLanguage.toUpperCase()}.`;
 
-    console.log("Generating email options for:", siteAnalysis?.brandName || niche);
+    console.log("Generating email options for:", siteAnalysis?.brandName || niche, "in language:", detectedLanguage);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
