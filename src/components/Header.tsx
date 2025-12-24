@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, CreditCard, Gift, History, Mail, GitBranch } from "lucide-react";
+import { LogOut, User, CreditCard, Gift, History, Mail, GitBranch, Sparkles } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 export function Header() {
@@ -47,6 +47,14 @@ export function Header() {
         {user && (
           <div className="flex items-center gap-6">
             <nav className="hidden md:flex items-center gap-1">
+              <NavLink 
+                to="/email-ai" 
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                activeClassName="text-foreground bg-muted"
+              >
+                <Sparkles className="h-4 w-4" />
+                Gerador IA
+              </NavLink>
               <NavLink 
                 to="/email-builder" 
                 className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
