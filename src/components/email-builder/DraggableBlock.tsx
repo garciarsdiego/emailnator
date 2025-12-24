@@ -122,10 +122,9 @@ function BlockPreview({ block }: { block: EmailBlock }) {
             textAlign: content.textAlign,
             color: content.color,
           }}
-          className="min-h-[24px]"
-        >
-          {content.text || "Clique para editar..."}
-        </div>
+          className="min-h-[24px] prose prose-sm max-w-none [&>*]:m-0 [&_ul]:pl-5 [&_ol]:pl-5"
+          dangerouslySetInnerHTML={{ __html: content.text || "<p>Clique para editar...</p>" }}
+        />
       );
 
     case "image":
@@ -200,7 +199,93 @@ function BlockPreview({ block }: { block: EmailBlock }) {
         </div>
       );
 
+    case "video":
+      return (
+        <div className="text-center py-2">
+          <div className="relative inline-block">
+            {content.videoThumbnail || content.videoUrl ? (
+              <img
+                src={content.videoThumbnail || `https://img.youtube.com/vi/${extractYouTubeId(content.videoUrl || "")}/mqdefault.jpg`}
+                alt={content.videoTitle || "Vídeo"}
+                className="max-w-full rounded-lg"
+              />
+            ) : (
+              <div className="w-full h-32 bg-muted/50 rounded-lg flex items-center justify-center">
+                <span className="text-muted-foreground text-sm">Adicione URL do vídeo</span>
+              </div>
+            )}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-black/70 flex items-center justify-center">
+                <div className="w-0 h-0 border-l-[14px] border-l-white border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1" />
+              </div>
+            </div>
+          </div>
+          {content.videoTitle && (
+            <p className="mt-2 text-sm font-medium">{content.videoTitle}</p>
+          )}
+        </div>
+      );
+
+    case "countdown":
+      return (
+        <div
+          className="text-center py-4 px-4 rounded-lg"
+          style={{
+            backgroundColor: content.countdownBgColor || "#6366f1",
+            color: content.countdownTextColor || "#ffffff",
+          }}
+        >
+          <p className="text-sm mb-3">{content.countdownTitle || "Oferta termina em:"}</p>
+          <div className="flex justify-center gap-2">
+            {["Dias", "Horas", "Min", "Seg"].map((label) => (
+              <div key={label} className="bg-white/20 rounded px-3 py-2 min-w-[50px]">
+                <span className="text-xl font-bold block">00</span>
+                <span className="text-[10px] uppercase">{label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs mt-2 opacity-80">Termina em: {content.countdownDate}</p>
+        </div>
+      );
+
+    case "product":
+      return (
+        <div className="border rounded-lg overflow-hidden max-w-[280px] mx-auto">
+          {content.productImage ? (
+            <img
+              src={content.productImage}
+              alt={content.productName}
+              className="w-full h-40 object-cover"
+            />
+          ) : (
+            <div className="w-full h-40 bg-muted/50 flex items-center justify-center text-muted-foreground text-sm">
+              Imagem do produto
+            </div>
+          )}
+          <div className="p-3">
+            <h4 className="font-medium text-sm">{content.productName || "Nome do Produto"}</h4>
+            <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
+              {content.productDescription || "Descrição do produto..."}
+            </p>
+            <div className="mt-2 flex items-baseline gap-2">
+              <span className="text-green-600 font-bold">{content.productPrice || "R$ 0,00"}</span>
+              {content.productOldPrice && (
+                <span className="text-xs text-muted-foreground line-through">{content.productOldPrice}</span>
+              )}
+            </div>
+            <button className="mt-3 w-full bg-primary text-primary-foreground text-xs py-2 rounded font-medium">
+              Comprar Agora
+            </button>
+          </div>
+        </div>
+      );
+
     default:
       return <div className="p-4 bg-muted rounded">Bloco desconhecido</div>;
   }
+}
+
+function extractYouTubeId(url: string): string {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+  return match ? match[1] : "";
 }
