@@ -84,17 +84,25 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = allSubscriptions[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      
+      // Safely handle dates that might be undefined or invalid
+      if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
+        subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      }
+      
       isTrialing = subscription.status === "trialing";
       
-      const productId = subscription.items.data[0].price.product as string;
+      const productId = subscription.items.data[0]?.price?.product as string;
       plan = PRODUCT_TO_PLAN[productId] || "free";
       
       logStep("Active subscription found", { 
         subscriptionId: subscription.id, 
         plan,
         isTrialing,
-        endDate: subscriptionEnd 
+        endDate: subscriptionEnd,
+        rawPeriodEnd: subscription.current_period_end,
+        rawStartDate: subscription.start_date,
+        rawTrialEnd: subscription.trial_end
       });
 
       // Update profile plan in database
