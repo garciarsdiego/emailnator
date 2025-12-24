@@ -36,7 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionInfo>(defaultSubscription);
 
   const checkSubscription = useCallback(async () => {
-    if (!session) {
+    // Only check if we have a valid session with access token
+    if (!session?.access_token) {
       setSubscription(defaultSubscription);
       return;
     }
@@ -45,6 +46,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.functions.invoke("check-subscription");
       
       if (error) {
+        // Silently handle 401 errors - user might not have a subscription yet
+        if (error.message?.includes("401") || error.message?.includes("JWT")) {
+          console.log("No active subscription or auth not ready");
+          return;
+        }
         console.error("Error checking subscription:", error);
         return;
       }
@@ -60,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error("Error checking subscription:", error);
     }
-  }, [session]);
+  }, [session?.access_token]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
