@@ -20,25 +20,26 @@ export function EmailOptionsSelector({
   selected, 
   onSelect 
 }: EmailOptionsSelectorProps) {
-  if (!options || options.length === 0) return null;
+  // Filter out empty strings to prevent Select.Item error
+  const validOptions = options?.filter((opt) => opt && opt.trim() !== "") || [];
+
+  if (validOptions.length === 0) return null;
 
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-medium text-muted-foreground">{label}</label>
-      <Select value={selected || ""} onValueChange={onSelect}>
+      <Select value={selected || undefined} onValueChange={onSelect}>
         <SelectTrigger className="w-full text-left h-auto min-h-[40px] py-2">
-          <SelectValue placeholder="Selecione uma opção">
+          <SelectValue placeholder="Selecione...">
             {selected ? (
               <span className="text-sm line-clamp-2 text-left">{selected}</span>
-            ) : (
-              <span className="text-sm text-muted-foreground">Selecione...</span>
-            )}
+            ) : null}
           </SelectValue>
         </SelectTrigger>
         <SelectContent className="max-h-[300px] bg-popover z-50">
-          {options.map((option, index) => (
+          {validOptions.map((option, index) => (
             <SelectItem 
-              key={index} 
+              key={`${index}-${option.substring(0, 10)}`} 
               value={option}
               className="cursor-pointer py-2.5 px-3"
             >
