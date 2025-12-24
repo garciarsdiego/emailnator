@@ -100,7 +100,7 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
     setIsAnalyzing(true);
     try {
       const { data, error } = await supabase.functions.invoke("analyze-site", {
-        body: { url: siteUrl },
+        body: { siteUrl },
       });
 
       if (error) throw error;
