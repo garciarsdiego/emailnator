@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   ArrowRight, 
   Clock, 
@@ -17,15 +16,50 @@ import {
   Lock, 
   ChevronDown, 
   ChevronUp,
-  Edit,
-  Eye,
   Loader2,
-  Wand2
+  Wand2,
+  Globe,
+  Search,
+  CheckCircle2,
+  AlertCircle
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { NICHES, TONES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+
+interface SiteAnalysis {
+  language?: string;
+  brandName?: string;
+  description?: string;
+  slogan?: string;
+  products?: string[];
+  branding?: {
+    colors?: {
+      primary?: string;
+      secondary?: string;
+      accent?: string;
+      background?: string;
+    };
+    fonts?: {
+      heading?: string;
+      body?: string;
+    };
+    visualStyle?: string;
+  };
+  communication?: {
+    tone?: string;
+    copyStyle?: string;
+    keyPhrases?: string[];
+  };
+  activeOffers?: Array<{
+    type?: string;
+    description?: string;
+    code?: string;
+  }>;
+  priceRange?: string;
+  targetAudience?: string;
+}
 
 interface FunnelFlowBuilderProps {
   onSave?: (sequence: { name: string; emails: Partial<SequenceEmail>[] }) => void;
@@ -39,11 +73,15 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
   const [niche, setNiche] = useState("");
   const [tone, setTone] = useState("");
   const [productDescription, setProductDescription] = useState("");
+  const [siteUrl, setSiteUrl] = useState("");
+  const [siteAnalysis, setSiteAnalysis] = useState<SiteAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [emails, setEmails] = useState<Partial<SequenceEmail>[]>(
     FUNNEL_STAGES.map((stage) => ({
       position: stage.id,
       name: stage.name,
       subject: "",
+      preheader: "",
       content: "",
       delay_days: stage.delay,
       trigger_type: "time_delay" as const,
@@ -53,38 +91,97 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
 
+  const handleAnalyzeSite = async () => {
+    if (!siteUrl) {
+      toast.error("Digite a URL do site");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("analyze-site", {
+        body: { url: siteUrl },
+      });
+
+      if (error) throw error;
+
+      setSiteAnalysis(data);
+      
+      // Auto-fill tone if detected
+      if (data.communication?.tone) {
+        const toneMap: Record<string, string> = {
+          "profissional": "formal",
+          "amigável": "casual",
+          "casual": "casual",
+          "sofisticado": "luxury",
+          "premium": "luxury",
+          "divertido": "playful",
+          "inspirador": "emotional",
+        };
+        const detectedTone = Object.entries(toneMap).find(([key]) => 
+          data.communication.tone.toLowerCase().includes(key)
+        );
+        if (detectedTone) setTone(detectedTone[1]);
+      }
+
+      toast.success("Site analisado com sucesso!");
+    } catch (error: any) {
+      console.error("Error analyzing site:", error);
+      toast.error("Erro ao analisar site: " + error.message);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handleGenerateAll = async () => {
-    if (!niche || !tone || !productDescription) {
-      toast.error("Preencha o nicho, tom e descrição do produto");
+    if (!niche || !tone) {
+      toast.error("Preencha o nicho e tom");
+      return;
+    }
+
+    if (!productDescription && !siteAnalysis) {
+      toast.error("Descreva o produto ou analise um site");
       return;
     }
 
     setIsGenerating(true);
     try {
-      const generatedEmails = await Promise.all(
-        FUNNEL_STAGES.map(async (stage, index) => {
-          const { data, error } = await supabase.functions.invoke("generate-email", {
-            body: {
-              niche,
-              campaignType: getFunnelCampaignType(stage.id),
-              tone,
-              targetAudience: productDescription,
-              additionalContext: `Este é o email ${stage.id} de 5 em um fluxo de funil. Etapa: ${stage.name}. Objetivo: ${stage.description}. Tipo de email: ${stage.emailType}.`,
-            },
-          });
+      const { data, error } = await supabase.functions.invoke("generate-funnel", {
+        body: {
+          niche,
+          tone,
+          productDescription: productDescription || siteAnalysis?.description || "",
+          siteUrl,
+          siteAnalysis,
+        },
+      });
 
-          if (error) throw error;
+      if (error) throw error;
 
-          return {
-            ...emails[index],
-            subject: data.subject,
-            content: data.content,
-          };
-        })
-      );
+      if (data.emails && Array.isArray(data.emails)) {
+        const generatedEmails = data.emails.map((email: any, index: number) => ({
+          position: email.position || index + 1,
+          name: email.name || FUNNEL_STAGES[index]?.name || `Email ${index + 1}`,
+          subject: email.subject || "",
+          preheader: email.preheader || "",
+          content: email.content || "",
+          delay_days: email.delay_days ?? FUNNEL_STAGES[index]?.delay ?? index * 2,
+          trigger_type: "time_delay" as const,
+        }));
 
-      setEmails(generatedEmails);
-      toast.success("Todos os emails do funil foram gerados!");
+        setEmails(generatedEmails);
+        
+        if (data.tips && data.tips.length > 0) {
+          toast.success(
+            <div className="space-y-1">
+              <p className="font-medium">Funil gerado com sucesso!</p>
+              <p className="text-xs text-muted-foreground">{data.tips[0]}</p>
+            </div>
+          );
+        } else {
+          toast.success("Funil completo gerado com sucesso!");
+        }
+      }
     } catch (error: any) {
       console.error("Error generating funnel:", error);
       toast.error("Erro ao gerar funil: " + error.message);
@@ -108,19 +205,26 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
           niche,
           campaignType: getFunnelCampaignType(stage.id),
           tone,
-          targetAudience: productDescription,
+          targetAudience: productDescription || siteAnalysis?.description || "",
+          siteAnalysis,
           additionalContext: `Este é o email ${stage.id} de 5 em um fluxo de funil. Etapa: ${stage.name}. Objetivo: ${stage.description}. Tipo de email: ${stage.emailType}.`,
         },
       });
 
       if (error) throw error;
 
+      // Handle the response - use first subject option if available
+      const subject = data.subjects?.[0] || data.subject || "";
+      const preheader = data.preheaders?.[0] || data.preheader || "";
+      const content = data.content || "";
+
       setEmails((prev) => {
         const updated = [...prev];
         updated[index] = {
           ...updated[index],
-          subject: data.subject,
-          content: data.content,
+          subject,
+          preheader,
+          content,
         };
         return updated;
       });
@@ -197,7 +301,74 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
             Configure uma sequência de 5 emails que guiam o lead através do funil de vendas
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          {/* Site Analysis Section */}
+          <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              <Globe className="h-4 w-4 text-primary" />
+              Análise de Site (Opcional)
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <Input
+                  value={siteUrl}
+                  onChange={(e) => setSiteUrl(e.target.value)}
+                  placeholder="https://seusite.com.br"
+                  disabled={isAnalyzing}
+                />
+              </div>
+              <Button 
+                onClick={handleAnalyzeSite} 
+                disabled={isAnalyzing || !siteUrl}
+                variant="secondary"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Analisar
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {siteAnalysis && (
+              <div className="p-3 rounded-md bg-primary/5 border border-primary/20 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-primary">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Site Analisado: {siteAnalysis.brandName || "Marca identificada"}
+                </div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  {siteAnalysis.description && (
+                    <p className="line-clamp-2">{siteAnalysis.description}</p>
+                  )}
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {siteAnalysis.communication?.tone && (
+                      <Badge variant="secondary" className="text-xs">
+                        Tom: {siteAnalysis.communication.tone}
+                      </Badge>
+                    )}
+                    {siteAnalysis.products && siteAnalysis.products.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {siteAnalysis.products.length} produtos
+                      </Badge>
+                    )}
+                    {siteAnalysis.activeOffers && siteAnalysis.activeOffers.length > 0 && (
+                      <Badge variant="secondary" className="text-xs">
+                        {siteAnalysis.activeOffers.length} ofertas ativas
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Configuration Fields */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Nome do Fluxo</Label>
@@ -251,11 +422,12 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
             onClick={handleGenerateAll}
             disabled={isGenerating || !niche || !tone}
             className="w-full"
+            size="lg"
           >
             {isGenerating ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Gerando todos os emails...
+                Gerando funil completo...
               </>
             ) : (
               <>
@@ -264,6 +436,13 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
               </>
             )}
           </Button>
+
+          {!siteAnalysis && !productDescription && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <AlertCircle className="h-3 w-3" />
+              Analise um site ou descreva seu produto para melhores resultados
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -322,13 +501,23 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
                   <p className="text-sm text-muted-foreground">{stage.description}</p>
 
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label>Assunto do Email</Label>
-                      <Input
-                        value={emails[index]?.subject || ""}
-                        onChange={(e) => updateEmail(index, "subject", e.target.value)}
-                        placeholder="Digite o assunto..."
-                      />
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <Label>Assunto do Email</Label>
+                        <Input
+                          value={emails[index]?.subject || ""}
+                          onChange={(e) => updateEmail(index, "subject", e.target.value)}
+                          placeholder="Digite o assunto..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Pré-header</Label>
+                        <Input
+                          value={emails[index]?.preheader || ""}
+                          onChange={(e) => updateEmail(index, "preheader", e.target.value)}
+                          placeholder="Texto de pré-visualização..."
+                        />
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -337,7 +526,7 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
                         value={emails[index]?.content || ""}
                         onChange={(e) => updateEmail(index, "content", e.target.value)}
                         placeholder="Digite o conteúdo do email..."
-                        rows={6}
+                        rows={8}
                       />
                     </div>
 
@@ -356,7 +545,7 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
                         ) : (
                           <>
                             <Wand2 className="h-4 w-4 mr-2" />
-                            Gerar com IA
+                            Regenerar com IA
                           </>
                         )}
                       </Button>
