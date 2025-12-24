@@ -2,16 +2,17 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
-import { useCampaigns } from "@/hooks/useCampaigns";
+import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { Loader2, FileText, Trash2, Eye, History, Star, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { replaceVariablesWithDummy } from "@/lib/emailVariables";
 
 interface TemplatesPanelProps {
   onUseTemplate?: (template: EmailTemplate) => void;
-  onUseCampaign?: (campaign: any) => void;
+  onUseCampaign?: (campaign: Campaign) => void;
 }
 
 export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelProps) {
@@ -19,7 +20,7 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelP
   const { campaigns, isLoading: campaignsLoading } = useCampaigns();
   const [showTemplates, setShowTemplates] = useState(true);
   const [showHistory, setShowHistory] = useState(false);
-  const [previewItem, setPreviewItem] = useState<EmailTemplate | any | null>(null);
+  const [previewItem, setPreviewItem] = useState<EmailTemplate | Campaign | null>(null);
   const [previewType, setPreviewType] = useState<"template" | "campaign">("template");
 
   const handleDeleteTemplate = async (id: string) => {
@@ -31,9 +32,25 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelP
     }
   };
 
-  const handlePreview = (item: any, type: "template" | "campaign") => {
+  const handlePreview = (item: EmailTemplate | Campaign, type: "template" | "campaign") => {
     setPreviewItem(item);
     setPreviewType(type);
+  };
+
+  // Get preview content with dummy values for variables
+  const getPreviewContent = () => {
+    if (!previewItem) return null;
+    
+    const subject = replaceVariablesWithDummy(previewItem.subject);
+    const content = replaceVariablesWithDummy(previewItem.content);
+    const preheader = 'preheader' in previewItem && previewItem.preheader 
+      ? replaceVariablesWithDummy(previewItem.preheader) 
+      : null;
+    const cta = 'cta' in previewItem && previewItem.cta 
+      ? replaceVariablesWithDummy(previewItem.cta) 
+      : null;
+    
+    return { subject, content, preheader, cta };
   };
 
   return (
@@ -189,37 +206,44 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelP
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
-              {previewType === "template" ? previewItem?.name : previewItem?.subject}
+              {previewType === "template" && previewItem && 'name' in previewItem 
+                ? previewItem.name 
+                : getPreviewContent()?.subject}
             </DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto mt-4">
-            {previewItem && (
-              <div className="space-y-4">
-                <div className="p-3 bg-muted rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Assunto</p>
-                  <p className="text-sm font-medium">{previewItem.subject}</p>
-                </div>
-                {previewItem.preheader && (
+            {previewItem && (() => {
+              const preview = getPreviewContent();
+              if (!preview) return null;
+              
+              return (
+                <div className="space-y-4">
                   <div className="p-3 bg-muted rounded-lg">
-                    <p className="text-xs text-muted-foreground mb-1">Pré-header</p>
-                    <p className="text-sm">{previewItem.preheader}</p>
+                    <p className="text-xs text-muted-foreground mb-1">Assunto (com valores de exemplo)</p>
+                    <p className="text-sm font-medium">{preview.subject}</p>
                   </div>
-                )}
-                <div className="p-4 border rounded-lg bg-background">
-                  <div
-                    className="prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: previewItem.content }}
-                  />
+                  {preview.preheader && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <p className="text-xs text-muted-foreground mb-1">Pré-header</p>
+                      <p className="text-sm">{preview.preheader}</p>
+                    </div>
+                  )}
+                  <div className="p-4 border rounded-lg bg-background">
+                    <div
+                      className="prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: preview.content }}
+                    />
+                  </div>
+                  {preview.cta && (
+                    <div className="text-center">
+                      <span className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-lg font-medium">
+                        {preview.cta}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                {previewItem.cta && (
-                  <div className="text-center">
-                    <span className="inline-block bg-primary text-primary-foreground px-6 py-2 rounded-lg font-medium">
-                      {previewItem.cta}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>

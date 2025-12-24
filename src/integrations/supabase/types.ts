@@ -81,6 +81,7 @@ export type Database = {
           target_audience: string | null
           tone: string | null
           user_id: string
+          variations: Json | null
         }
         Insert: {
           campaign_type: string
@@ -94,6 +95,7 @@ export type Database = {
           target_audience?: string | null
           tone?: string | null
           user_id: string
+          variations?: Json | null
         }
         Update: {
           campaign_type?: string
@@ -107,6 +109,7 @@ export type Database = {
           target_audience?: string | null
           tone?: string | null
           user_id?: string
+          variations?: Json | null
         }
         Relationships: []
       }

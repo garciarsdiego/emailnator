@@ -12,7 +12,7 @@ import { ContentReferenceInput, ContentReference } from "@/components/ContentRef
 import { TemplatesPanel } from "@/components/TemplatesPanel";
 import { BrandManualEditor } from "@/components/BrandManualEditor";
 import { useUserCredits } from "@/hooks/useUserCredits";
-import { useCampaigns } from "@/hooks/useCampaigns";
+import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useBrandManual } from "@/hooks/useBrandManual";
 import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
 import { toast } from "sonner";
@@ -114,18 +114,21 @@ export function EmailGenerator() {
     toast.success("Template carregado!");
   };
 
-  const handleUseCampaign = (campaign: any) => {
+  const handleUseCampaign = (campaign: Campaign) => {
     setNiche(campaign.niche || "");
     setCampaignType(campaign.campaign_type || "");
     setTone(campaign.tone || "casual");
     setTargetAudience(campaign.target_audience || "");
+    
+    // Load variations if available, otherwise fallback to single values
+    const variations = campaign.variations;
     setEmailOptions({
-      subjects: [campaign.subject],
-      subjectsResend: [campaign.subject],
-      preheaders: [""],
-      ctas: ["Saiba mais"],
+      subjects: variations?.subjects?.length ? variations.subjects : [campaign.subject],
+      subjectsResend: variations?.subjectsResend?.length ? variations.subjectsResend : [campaign.subject],
+      preheaders: variations?.preheaders?.length ? variations.preheaders : [""],
+      ctas: variations?.ctas?.length ? variations.ctas : ["Saiba mais"],
       content: campaign.content,
-      tips: [],
+      tips: variations?.tips || [],
       brandName: brandManual?.brand_name || undefined,
       brandColors: brandManual ? {
         primary: brandManual.primary_color,
@@ -134,7 +137,7 @@ export function EmailGenerator() {
         background: brandManual.background_color,
       } : undefined,
     });
-    toast.success("Email anterior carregado!");
+    toast.success("Email anterior carregado com todas as variações!");
   };
 
   const handleSaveAsTemplate = async (name: string, subject: string, preheader: string, content: string, cta: string) => {
@@ -255,6 +258,13 @@ export function EmailGenerator() {
         target_audience: targetAudience,
         site_url: siteUrl || undefined,
         site_analysis: siteAnalysis ? JSON.parse(JSON.stringify(siteAnalysis)) : undefined,
+        variations: {
+          subjects: email.subjects || [],
+          subjectsResend: email.subjectsResend || [],
+          preheaders: email.preheaders || [],
+          ctas: email.ctas || [],
+          tips: email.tips || [],
+        },
       });
 
       toast.success("Email gerado e salvo com sucesso!");

@@ -2,7 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-interface Campaign {
+export interface CampaignVariations {
+  subjects?: string[];
+  subjectsResend?: string[];
+  preheaders?: string[];
+  ctas?: string[];
+  tips?: string[];
+}
+
+export interface Campaign {
   id: string;
   user_id: string;
   niche: string;
@@ -13,6 +21,7 @@ interface Campaign {
   tone: string | null;
   target_audience: string | null;
   site_analysis: Record<string, unknown> | null;
+  variations: CampaignVariations | null;
   created_at: string;
 }
 
@@ -25,6 +34,7 @@ interface CreateCampaignData {
   tone?: string;
   target_audience?: string;
   site_analysis?: Record<string, unknown>;
+  variations?: CampaignVariations;
 }
 
 export function useCampaigns() {
@@ -64,6 +74,7 @@ export function useCampaigns() {
           target_audience: campaignData.target_audience,
           site_url: campaignData.site_url,
           site_analysis: campaignData.site_analysis ? JSON.parse(JSON.stringify(campaignData.site_analysis)) : null,
+          variations: campaignData.variations ? JSON.parse(JSON.stringify(campaignData.variations)) : null,
         }])
         .select()
         .single();
