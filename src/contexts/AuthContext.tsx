@@ -36,19 +36,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [subscription, setSubscription] = useState<SubscriptionInfo>(defaultSubscription);
 
   const checkSubscription = useCallback(async () => {
-    // Only check if we have a valid session with access token
-    if (!session?.access_token) {
-      setSubscription(defaultSubscription);
-      return;
-    }
-
     try {
+      // Get fresh session directly from Supabase to ensure we have valid auth
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      if (!currentSession?.access_token) {
+        console.log("No valid session for subscription check");
+        setSubscription(defaultSubscription);
+        return;
+      }
+
       const { data, error } = await supabase.functions.invoke("check-subscription");
       
       if (error) {
         // Silently handle 401 errors - user might not have a subscription yet
         if (error.message?.includes("401") || error.message?.includes("JWT")) {
-          console.log("No active subscription or auth not ready");
+          console.log("Subscription check: auth not ready or no subscription");
           return;
         }
         console.error("Error checking subscription:", error);
@@ -64,23 +67,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
       }
     } catch (error) {
-      console.error("Error checking subscription:", error);
+      // Silently handle errors to avoid blocking the UI
+      console.log("Subscription check failed:", error);
     }
-  }, [session?.access_token]);
+  }, []);
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      (event, currentSession) => {
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
         setLoading(false);
 
-        // Check subscription status after auth state change
-        if (session) {
+        // Check subscription status after auth state change with delay
+        if (currentSession) {
           setTimeout(() => {
             checkSubscription();
-          }, 0);
+          }, 500); // Add delay to ensure session is fully propagated
         } else {
           setSubscription(defaultSubscription);
         }
@@ -88,15 +92,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
       setLoading(false);
       
-      if (session) {
+      if (existingSession) {
         setTimeout(() => {
           checkSubscription();
-        }, 0);
+        }, 500); // Add delay to ensure session is fully propagated
       }
     });
 
