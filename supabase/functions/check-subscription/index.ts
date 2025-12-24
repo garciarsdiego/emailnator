@@ -98,12 +98,20 @@ serve(async (req) => {
       });
 
       // Update profile plan in database
+      const planStartedAt = subscription.start_date 
+        ? new Date(subscription.start_date * 1000).toISOString() 
+        : new Date().toISOString();
+      
+      const trialEndsAt = isTrialing && subscription.trial_end 
+        ? new Date(subscription.trial_end * 1000).toISOString() 
+        : null;
+
       const { error: updateError } = await supabaseClient
         .from("profiles")
         .update({ 
           plan: plan as "free" | "starter" | "pro" | "enterprise",
-          plan_started_at: new Date(subscription.start_date * 1000).toISOString(),
-          trial_ends_at: isTrialing ? new Date(subscription.trial_end! * 1000).toISOString() : null,
+          plan_started_at: planStartedAt,
+          trial_ends_at: trialEndsAt,
         })
         .eq("id", user.id);
 
