@@ -127,7 +127,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
   const isComplete = selectedSubject && selectedPreheader && selectedCta;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr,400px] gap-6 h-full">
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr,420px] gap-6">
       {/* Left Column - Options & Editor */}
       <div className="space-y-4 overflow-y-auto">
         {/* Header with actions */}
