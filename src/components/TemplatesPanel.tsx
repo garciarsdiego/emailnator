@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
-import { Loader2, FileText, Trash2, Eye, History, Star, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, FileText, Trash2, Eye, History, Star, ChevronDown, ChevronUp, Paintbrush } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
@@ -13,9 +13,10 @@ import { replaceVariablesWithDummy } from "@/lib/emailVariables";
 interface TemplatesPanelProps {
   onUseTemplate?: (template: EmailTemplate) => void;
   onUseCampaign?: (campaign: Campaign) => void;
+  onEditVisual?: (content: { subject: string; preheader?: string; content: string; cta?: string; brandName?: string }) => void;
 }
 
-export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelProps) {
+export function TemplatesPanel({ onUseTemplate, onUseCampaign, onEditVisual }: TemplatesPanelProps) {
   const { templates, isLoading: templatesLoading, deleteTemplate } = useEmailTemplates();
   const { campaigns, isLoading: campaignsLoading } = useCampaigns();
   const [showTemplates, setShowTemplates] = useState(true);
@@ -103,14 +104,32 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelP
                         size="sm"
                         className="h-7 w-7 p-0"
                         onClick={() => handlePreview(template, "template")}
+                        title="Visualizar"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
+                      {onEditVisual && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-primary hover:text-primary"
+                          onClick={() => onEditVisual({
+                            subject: template.subject,
+                            preheader: template.preheader || undefined,
+                            content: template.content,
+                            cta: template.cta || undefined,
+                          })}
+                          title="Editar no Visual Builder"
+                        >
+                          <Paintbrush className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
                         onClick={() => onUseTemplate?.(template)}
+                        title="Usar template"
                       >
                         <FileText className="h-3.5 w-3.5" />
                       </Button>
@@ -119,6 +138,7 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelP
                         size="sm"
                         className="h-7 w-7 p-0 text-destructive hover:text-destructive"
                         onClick={() => handleDeleteTemplate(template.id)}
+                        title="Excluir"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
@@ -181,14 +201,30 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign }: TemplatesPanelP
                         size="sm"
                         className="h-7 w-7 p-0"
                         onClick={() => handlePreview(campaign, "campaign")}
+                        title="Visualizar"
                       >
                         <Eye className="h-3.5 w-3.5" />
                       </Button>
+                      {onEditVisual && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-primary hover:text-primary"
+                          onClick={() => onEditVisual({
+                            subject: campaign.subject,
+                            content: campaign.content,
+                          })}
+                          title="Editar no Visual Builder"
+                        >
+                          <Paintbrush className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 w-7 p-0"
                         onClick={() => onUseCampaign?.(campaign)}
+                        title="Reutilizar"
                       >
                         <FileText className="h-3.5 w-3.5" />
                       </Button>
