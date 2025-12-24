@@ -12,7 +12,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, CreditCard, Gift, History } from "lucide-react";
+import { LogOut, User, CreditCard, Gift, History, Mail, GitBranch } from "lucide-react";
+import { NavLink } from "@/components/NavLink";
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -44,7 +45,26 @@ export function Header() {
         </Link>
 
         {user && (
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-6">
+            <nav className="hidden md:flex items-center gap-1">
+              <NavLink 
+                to="/email-builder" 
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                activeClassName="text-foreground bg-muted"
+              >
+                <Mail className="h-4 w-4" />
+                Editor Visual
+              </NavLink>
+              <NavLink 
+                to="/funnel" 
+                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                activeClassName="text-foreground bg-muted"
+              >
+                <GitBranch className="h-4 w-4" />
+                Fluxo de Funil
+              </NavLink>
+            </nav>
+
             <CreditsDisplay />
 
             <DropdownMenu>
