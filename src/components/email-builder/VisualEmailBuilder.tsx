@@ -65,7 +65,6 @@ export function VisualEmailBuilder({
   const [preheader, setPreheader] = useState(initialContent?.preheader || "");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  const [showLivePreview, setShowLivePreview] = useState(true);
 
   useEffect(() => {
     if (initialContent) {
@@ -311,17 +310,6 @@ export function VisualEmailBuilder({
             </div>
           )}
 
-          {previewMode === "edit" && (
-            <Button
-              variant={showLivePreview ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 text-xs ml-2"
-              onClick={() => setShowLivePreview(!showLivePreview)}
-            >
-              <Eye className="h-3.5 w-3.5 mr-1" />
-              Live
-            </Button>
-          )}
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="h-7 text-xs" onClick={clearBlocks}>
@@ -355,60 +343,16 @@ export function VisualEmailBuilder({
               <BlockPalette onAddBlock={addBlock} />
             </div>
 
-            {/* Center - Canvas + Live Preview */}
-            <div className="flex-1 flex overflow-hidden">
-              {/* Canvas */}
-              <div className={cn(
-                "p-4 overflow-auto bg-muted/20",
-                showLivePreview ? "flex-1" : "flex-1"
-              )}>
-                <EmailCanvas
-                  blocks={blocks}
-                  selectedBlockId={selectedBlockId}
-                  onSelectBlock={setSelectedBlockId}
-                  onMoveBlock={moveBlock}
-                  onRemoveBlock={removeBlock}
-                  onDuplicateBlock={duplicateBlock}
-                />
-              </div>
-
-              {/* Live Preview */}
-              {showLivePreview && (
-                <div className="w-80 border-l bg-background p-3 overflow-hidden flex flex-col">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-muted-foreground">Live Preview</span>
-                    <div className="flex gap-1">
-                      <Button
-                        variant={previewDevice === "desktop" ? "secondary" : "ghost"}
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => setPreviewDevice("desktop")}
-                      >
-                        <Monitor className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        variant={previewDevice === "mobile" ? "secondary" : "ghost"}
-                        size="sm"
-                        className="h-6 w-6 p-0"
-                        onClick={() => setPreviewDevice("mobile")}
-                      >
-                        <Smartphone className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                  <div className="flex-1 overflow-auto rounded border bg-white">
-                    <iframe
-                      srcDoc={generateHTML()}
-                      className={cn(
-                        "border-0 transition-all",
-                        previewDevice === "mobile" ? "w-[320px] mx-auto" : "w-full"
-                      )}
-                      style={{ minHeight: "400px", height: "100%" }}
-                      title="Live Preview"
-                    />
-                  </div>
-                </div>
-              )}
+            {/* Center - Canvas */}
+            <div className="flex-1 p-4 overflow-auto bg-muted/20">
+              <EmailCanvas
+                blocks={blocks}
+                selectedBlockId={selectedBlockId}
+                onSelectBlock={setSelectedBlockId}
+                onMoveBlock={moveBlock}
+                onRemoveBlock={removeBlock}
+                onDuplicateBlock={duplicateBlock}
+              />
             </div>
 
             {/* Right sidebar - Block editor */}
