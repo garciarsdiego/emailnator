@@ -37,6 +37,12 @@ interface SiteAnalysis {
   targetAudience?: string;
 }
 
+interface ContentReference {
+  type: "product" | "category" | "blog";
+  url: string;
+  description?: string;
+}
+
 interface EmailRequest {
   niche: string;
   campaignType: string;
@@ -44,6 +50,7 @@ interface EmailRequest {
   targetAudience: string;
   siteUrl?: string;
   siteAnalysis?: SiteAnalysis;
+  contentReference?: ContentReference;
   language?: string;
 }
 
@@ -53,7 +60,7 @@ serve(async (req) => {
   }
 
   try {
-    const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, language = "pt-BR" } = await req.json() as EmailRequest;
+    const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, contentReference, language = "pt-BR" } = await req.json() as EmailRequest;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -136,6 +143,24 @@ IMPORTANTE: Use as expressões, tom e estilo de comunicação da marca para cria
 `;
     }
 
+    // Build content reference context
+    let contentReferenceContext = "";
+    if (contentReference) {
+      const typeLabels = {
+        product: "PRODUTO ESPECÍFICO",
+        category: "CATEGORIA/COLEÇÃO",
+        blog: "POST DO BLOG",
+      };
+      contentReferenceContext = `
+=== CONTEÚDO DE REFERÊNCIA ===
+TIPO: ${typeLabels[contentReference.type]}
+URL: ${contentReference.url}
+${contentReference.description ? `DESCRIÇÃO ADICIONAL: ${contentReference.description}` : ""}
+
+IMPORTANTE: O email deve focar neste conteúdo específico. Mencione-o de forma natural e persuasiva.
+`;
+    }
+
     // Determine the effective tone - prioritize brand's own tone if available
     const effectiveTone = siteAnalysis?.communication?.tone || tone;
     const toneInstruction = siteAnalysis?.communication?.tone 
@@ -146,14 +171,13 @@ IMPORTANTE: Use as expressões, tom e estilo de comunicação da marca para cria
 
 REGRAS OBRIGATÓRIAS:
 1. Escreva SEMPRE em português brasileiro
-2. O assunto deve ter no máximo 50 caracteres
+2. Assuntos devem ter no máximo 50 caracteres
 3. Inclua emojis estratégicos no assunto e corpo do email
 4. Use técnicas de copywriting como urgência, escassez, prova social
-5. Inclua um CTA (Call-to-Action) claro e persuasivo
-6. O email deve ser responsivo e funcionar bem em mobile
-7. Personalize com {{nome}} onde apropriado
-8. Use bullet points para benefícios
-9. Mantenha parágrafos curtos (2-3 linhas)
+5. O email deve ser responsivo e funcionar bem em mobile
+6. Personalize com {{nome}} onde apropriado
+7. Use bullet points para benefícios
+8. Mantenha parágrafos curtos (2-3 linhas)
 
 PERSONALIZAÇÃO COM BASE NA ANÁLISE:
 - Se houver informações da marca, USE o tom e estilo de comunicação dela
@@ -165,13 +189,19 @@ PERSONALIZAÇÃO COM BASE NA ANÁLISE:
 FORMATO DE RESPOSTA:
 Retorne um JSON válido com a seguinte estrutura:
 {
-  "subject": "Assunto do email (max 50 chars)",
-  "preheader": "Texto de pré-visualização (max 100 chars)",
+  "subjects": ["Assunto 1 (max 50 chars)", "Assunto 2 (max 50 chars)", "Assunto 3 (max 50 chars)"],
+  "subjectsResend": ["Assunto reenvio 1", "Assunto reenvio 2", "Assunto reenvio 3"],
+  "preheaders": ["Pré-header 1 (max 100 chars)", "Pré-header 2 (max 100 chars)", "Pré-header 3 (max 100 chars)"],
+  "ctas": ["CTA 1", "CTA 2", "CTA 3"],
   "content": "Corpo do email em HTML simples",
-  "cta_text": "Texto do botão CTA",
-  "tips": ["Dica 1 de otimização", "Dica 2 de otimização"],
-  "personalization_notes": "Notas sobre como o email foi personalizado para esta marca"
-}`;
+  "tips": ["Dica 1 de otimização", "Dica 2 de otimização"]
+}
+
+REGRAS PARA VARIAÇÕES:
+- Os 3 assuntos de primeiro envio devem ter abordagens diferentes: 1 com urgência, 1 com curiosidade, 1 com benefício direto
+- Os 3 assuntos de reenvio/A-B devem ser reformulações criativas dos primeiros, para quem não abriu
+- Os 3 pré-headers devem complementar os assuntos, não repetir
+- Os 3 CTAs devem variar em intensidade: 1 direto, 1 suave, 1 com urgência`;
 
     const userPrompt = `Crie um email de marketing com as seguintes especificações:
 
@@ -180,10 +210,11 @@ TIPO DE CAMPANHA: ${campaignTypeDescriptions[campaignType] || campaignType}
 TOM SOLICITADO: ${toneDescriptions[tone] || tone}
 PÚBLICO-ALVO: ${targetAudience}
 ${brandContext}
+${contentReferenceContext}
 
-Gere um email completo, ALTAMENTE PERSONALIZADO para esta marca, persuasivo e otimizado para conversão.`;
+Gere um email completo com 3 opções de assunto (primeiro envio), 3 opções de assunto (reenvio/A-B), 3 opções de pré-header e 3 opções de CTA. O corpo do email deve ser único mas otimizado.`;
 
-    console.log("Generating email for:", siteAnalysis?.brandName || niche);
+    console.log("Generating email options for:", siteAnalysis?.brandName || niche);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -197,7 +228,7 @@ Gere um email completo, ALTAMENTE PERSONALIZADO para esta marca, persuasivo e ot
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
+        temperature: 0.8,
       }),
     });
 
@@ -231,15 +262,22 @@ Gere um email completo, ALTAMENTE PERSONALIZADO para esta marca, persuasivo e ot
       emailData = JSON.parse(jsonMatch[1] || generatedContent);
     } catch (parseError) {
       console.error("Error parsing AI response:", parseError);
-      // Fallback: create basic structure from text
+      // Fallback: create basic structure
       emailData = {
-        subject: "Confira nossa oferta especial!",
-        preheader: "Você não vai querer perder isso...",
+        subjects: ["Confira nossa oferta especial! 🎁", "Você não pode perder isso 🚀", "Novidades esperando por você ✨"],
+        subjectsResend: ["Ei, você viu isso? 👀", "Última chance! ⏰", "Separamos algo especial 💫"],
+        preheaders: ["Aproveite antes que acabe", "Descubra agora", "Não perca essa oportunidade"],
+        ctas: ["Comprar Agora", "Ver Ofertas", "Aproveitar Desconto"],
         content: generatedContent,
-        cta_text: "Comprar Agora",
         tips: ["Personalize o email com o nome do cliente", "Adicione imagens dos produtos"],
       };
     }
+
+    // Ensure arrays exist
+    emailData.subjects = emailData.subjects || [emailData.subject || "Confira nossa oferta!"];
+    emailData.subjectsResend = emailData.subjectsResend || emailData.subjects.map((s: string) => `Você viu? ${s}`);
+    emailData.preheaders = emailData.preheaders || [emailData.preheader || "Não perca essa oportunidade"];
+    emailData.ctas = emailData.ctas || [emailData.cta_text || "Comprar Agora"];
 
     // Include brand info in response for preview styling
     if (siteAnalysis) {
@@ -247,7 +285,7 @@ Gere um email completo, ALTAMENTE PERSONALIZADO para esta marca, persuasivo e ot
       emailData.brandColors = siteAnalysis.branding?.colors;
     }
 
-    console.log("Email generated successfully for:", siteAnalysis?.brandName || "generic");
+    console.log("Email options generated successfully for:", siteAnalysis?.brandName || "generic");
 
     return new Response(JSON.stringify(emailData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
