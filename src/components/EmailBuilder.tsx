@@ -1,13 +1,15 @@
-import { Copy, Download, Check, RefreshCw, Code, Type, Eye, X } from "lucide-react";
+import { Copy, Download, Check, RefreshCw, Code, Type, Eye, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { EmailOptionsSelector } from "./EmailOptionsSelector";
 import { RichTextEditor } from "./RichTextEditor";
+import { BrandManual } from "@/hooks/useBrandManual";
 
 interface BrandColors {
   primary?: string;
@@ -31,9 +33,11 @@ interface EmailBuilderProps {
   options: EmailOptions;
   onRegenerate?: () => void;
   isRegenerating?: boolean;
+  onSaveTemplate?: (name: string, subject: string, preheader: string, content: string, cta: string) => Promise<void>;
+  brandManual?: BrandManual | null;
 }
 
-export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBuilderProps) {
+export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemplate, brandManual }: EmailBuilderProps) {
   const [selectedSubject, setSelectedSubject] = useState<string>(options.subjects[0] || "");
   const [selectedSubjectResend, setSelectedSubjectResend] = useState<string>(options.subjectsResend[0] || "");
   const [selectedPreheader, setSelectedPreheader] = useState<string>(options.preheaders[0] || "");
@@ -41,6 +45,9 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
   const [editableContent, setEditableContent] = useState<string>(options.content);
   const [editorMode, setEditorMode] = useState<"rich" | "html">("rich");
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -51,7 +58,17 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
     setEditableContent(options.content);
   }, [options]);
 
-  const { brandColors, brandName, tips } = options;
+  const { brandColors: optionBrandColors, brandName: optionBrandName, tips } = options;
+
+  // Use brand manual colors if available, otherwise fall back to options
+  const brandColors = brandManual ? {
+    primary: brandManual.primary_color,
+    secondary: brandManual.secondary_color || undefined,
+    accent: brandManual.accent_color || undefined,
+    background: brandManual.background_color,
+  } : optionBrandColors;
+
+  const brandName = brandManual?.brand_name || optionBrandName;
 
   const primaryColor = brandColors?.primary && brandColors.primary !== "null" 
     ? brandColors.primary 
@@ -62,6 +79,25 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
   const accentColor = brandColors?.accent && brandColors.accent !== "null" 
     ? brandColors.accent 
     : primaryColor;
+
+  const handleSaveTemplate = async () => {
+    if (!templateName.trim()) {
+      toast.error("Digite um nome para o template");
+      return;
+    }
+    if (!onSaveTemplate) return;
+
+    setIsSaving(true);
+    try {
+      await onSaveTemplate(templateName, selectedSubject, selectedPreheader, editableContent, selectedCta);
+      setShowSaveModal(false);
+      setTemplateName("");
+    } catch (error) {
+      // Error handled in parent
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const isLightColor = (color: string) => {
     if (!color || !color.startsWith("#")) return true;
@@ -243,8 +279,46 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             <Download className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">HTML</span>
           </Button>
+          {onSaveTemplate && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowSaveModal(true)}
+              disabled={!isComplete}
+            >
+              <Star className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Salvar</span>
+            </Button>
+          )}
         </div>
       </div>
+
+      {/* Save Template Modal */}
+      <Dialog open={showSaveModal} onOpenChange={setShowSaveModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Salvar como Template</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Nome do Template</label>
+              <Input
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="Ex: Email de Boas-vindas"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowSaveModal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveTemplate} disabled={isSaving}>
+                {isSaving ? "Salvando..." : "Salvar Template"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Main Content Area */}
       <div className="flex-1 min-h-0 overflow-y-auto space-y-3 sm:space-y-4 pr-1">

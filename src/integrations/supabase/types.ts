@@ -14,6 +14,60 @@ export type Database = {
   }
   public: {
     Tables: {
+      brand_manuals: {
+        Row: {
+          accent_color: string | null
+          background_color: string | null
+          body_font: string | null
+          brand_name: string | null
+          created_at: string
+          heading_font: string | null
+          id: string
+          key_phrases: string[] | null
+          language_style: string | null
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          accent_color?: string | null
+          background_color?: string | null
+          body_font?: string | null
+          brand_name?: string | null
+          created_at?: string
+          heading_font?: string | null
+          id?: string
+          key_phrases?: string[] | null
+          language_style?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          accent_color?: string | null
+          background_color?: string | null
+          body_font?: string | null
+          brand_name?: string | null
+          created_at?: string
+          heading_font?: string | null
+          id?: string
+          key_phrases?: string[] | null
+          language_style?: string | null
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           campaign_type: string
@@ -52,6 +106,51 @@ export type Database = {
           subject?: string
           target_audience?: string | null
           tone?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_templates: {
+        Row: {
+          campaign_type: string | null
+          content: string
+          created_at: string
+          cta: string | null
+          id: string
+          name: string
+          niche: string | null
+          preheader: string | null
+          subject: string
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          campaign_type?: string | null
+          content: string
+          created_at?: string
+          cta?: string | null
+          id?: string
+          name: string
+          niche?: string | null
+          preheader?: string | null
+          subject: string
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          campaign_type?: string | null
+          content?: string
+          created_at?: string
+          cta?: string | null
+          id?: string
+          name?: string
+          niche?: string | null
+          preheader?: string | null
+          subject?: string
+          tone?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
