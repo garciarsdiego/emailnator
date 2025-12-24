@@ -9,10 +9,14 @@ import { ToneSelector } from "@/components/ToneSelector";
 import { EmailBuilder } from "@/components/EmailBuilder";
 import { SiteAnalysisCard } from "@/components/SiteAnalysisCard";
 import { ContentReferenceInput, ContentReference } from "@/components/ContentReferenceInput";
+import { TemplatesPanel } from "@/components/TemplatesPanel";
+import { BrandManualEditor } from "@/components/BrandManualEditor";
 import { useUserCredits } from "@/hooks/useUserCredits";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useBrandManual } from "@/hooks/useBrandManual";
+import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Search, AlertCircle } from "lucide-react";
+import { Loader2, Sparkles, Search, AlertCircle, Palette, ArrowLeft } from "lucide-react";
 
 interface BrandColors {
   primary?: string;
@@ -78,6 +82,78 @@ export function EmailGenerator() {
   const { hasEmailCredits, hasAnalysisCredits, consumeEmailCredit, consumeAnalysisCredit, totalEmails, totalAnalyses } =
     useUserCredits();
   const { createCampaign } = useCampaigns();
+  const { brandManual } = useBrandManual();
+  const { saveTemplate } = useEmailTemplates();
+
+  // Apply brand manual settings if available
+  const applyBrandSettings = () => {
+    if (brandManual) {
+      if (brandManual.tone) setTone(brandManual.tone);
+    }
+  };
+
+  const handleUseTemplate = (template: EmailTemplate) => {
+    setNiche(template.niche || "");
+    setCampaignType(template.campaign_type || "");
+    setTone(template.tone || "casual");
+    setEmailOptions({
+      subjects: [template.subject],
+      subjectsResend: [template.subject],
+      preheaders: [template.preheader || ""],
+      ctas: [template.cta || "Saiba mais"],
+      content: template.content,
+      tips: [],
+      brandName: brandManual?.brand_name || undefined,
+      brandColors: brandManual ? {
+        primary: brandManual.primary_color,
+        secondary: brandManual.secondary_color || undefined,
+        accent: brandManual.accent_color || undefined,
+        background: brandManual.background_color,
+      } : undefined,
+    });
+    toast.success("Template carregado!");
+  };
+
+  const handleUseCampaign = (campaign: any) => {
+    setNiche(campaign.niche || "");
+    setCampaignType(campaign.campaign_type || "");
+    setTone(campaign.tone || "casual");
+    setTargetAudience(campaign.target_audience || "");
+    setEmailOptions({
+      subjects: [campaign.subject],
+      subjectsResend: [campaign.subject],
+      preheaders: [""],
+      ctas: ["Saiba mais"],
+      content: campaign.content,
+      tips: [],
+      brandName: brandManual?.brand_name || undefined,
+      brandColors: brandManual ? {
+        primary: brandManual.primary_color,
+        secondary: brandManual.secondary_color || undefined,
+        accent: brandManual.accent_color || undefined,
+        background: brandManual.background_color,
+      } : undefined,
+    });
+    toast.success("Email anterior carregado!");
+  };
+
+  const handleSaveAsTemplate = async (name: string, subject: string, preheader: string, content: string, cta: string) => {
+    try {
+      await saveTemplate.mutateAsync({
+        name,
+        subject,
+        preheader,
+        content,
+        cta,
+        campaign_type: campaignType,
+        niche,
+        tone,
+      });
+      toast.success("Template salvo!");
+    } catch (error) {
+      toast.error("Erro ao salvar template");
+    }
+  };
 
   const handleAnalyzeSite = async () => {
     if (!siteUrl) {
@@ -194,122 +270,161 @@ export function EmailGenerator() {
   if (emailOptions) {
     return (
       <div className="h-full flex flex-col">
+        <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+          <Button variant="ghost" size="sm" onClick={() => setEmailOptions(null)}>
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Voltar
+          </Button>
+        </div>
         <EmailBuilder
           options={emailOptions}
           onRegenerate={handleGenerateEmail}
           isRegenerating={isGenerating}
+          onSaveTemplate={handleSaveAsTemplate}
+          brandManual={brandManual}
         />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 overflow-y-auto h-full pb-4">
-      {/* Site Analysis Section */}
-      <Card className="glass-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Search className="h-4 w-4 text-primary" />
-            Análise de Site (Opcional)
-          </CardTitle>
-          <p className="text-sm text-muted-foreground">
-            Cole a URL do seu e-commerce para personalizar o email automaticamente
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Input
-              placeholder="https://sua-loja.com.br"
-              value={siteUrl}
-              onChange={(e) => setSiteUrl(e.target.value)}
-              className="flex-1"
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr,300px] gap-4 h-full overflow-hidden">
+      {/* Main Form */}
+      <div className="space-y-4 overflow-y-auto pb-4 pr-1">
+        {/* Brand Manual Button */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {brandManual?.brand_name && (
+              <span className="text-sm text-muted-foreground">
+                Usando: <span className="font-medium text-foreground">{brandManual.brand_name}</span>
+              </span>
+            )}
+          </div>
+          <BrandManualEditor
+            trigger={
+              <Button variant="outline" size="sm">
+                <Palette className="h-4 w-4 mr-2" />
+                {brandManual ? "Editar Marca" : "Configurar Marca"}
+              </Button>
+            }
+            onSave={applyBrandSettings}
+          />
+        </div>
+
+        {/* Site Analysis Section */}
+        <Card className="glass-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Search className="h-4 w-4 text-primary" />
+              Análise de Site (Opcional)
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Cole a URL do seu e-commerce para personalizar o email automaticamente
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://sua-loja.com.br"
+                value={siteUrl}
+                onChange={(e) => setSiteUrl(e.target.value)}
+                className="flex-1"
+              />
+              <Button
+                onClick={handleAnalyzeSite}
+                disabled={isAnalyzing || !hasAnalysisCredits}
+                variant="secondary"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Analisando...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Analisar ({totalAnalyses})
+                  </>
+                )}
+              </Button>
+            </div>
+            {!hasAnalysisCredits && (
+              <div className="flex items-center gap-2 rounded-lg bg-warning/10 p-3 text-sm text-warning">
+                <AlertCircle className="h-4 w-4" />
+                Você usou sua análise gratuita. Faça upgrade para mais análises.
+              </div>
+            )}
+            {siteAnalysis && <SiteAnalysisCard analysis={siteAnalysis} />}
+          </CardContent>
+        </Card>
+
+        {/* Email Configuration */}
+        <Card className="glass-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Configurar Email
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <NicheSelector value={niche} onChange={setNiche} />
+            <CampaignTypeSelector value={campaignType} onChange={setCampaignType} />
+            <ToneSelector value={tone} onChange={setTone} />
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">
+                Público-alvo
+              </label>
+              <Textarea
+                placeholder="Ex: Mulheres de 25-45 anos, interessadas em moda sustentável, classe B/C, que buscam qualidade e bom custo-benefício..."
+                value={targetAudience}
+                onChange={(e) => setTargetAudience(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Content Reference Input */}
+            <ContentReferenceInput 
+              value={contentReference} 
+              onChange={setContentReference} 
             />
+
             <Button
-              onClick={handleAnalyzeSite}
-              disabled={isAnalyzing || !hasAnalysisCredits}
-              variant="secondary"
+              onClick={handleGenerateEmail}
+              disabled={isGenerating || !hasEmailCredits}
+              className="w-full"
+              size="lg"
             >
-              {isAnalyzing ? (
+              {isGenerating ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analisando...
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Gerando opções de email...
                 </>
               ) : (
                 <>
-                  <Search className="h-4 w-4 mr-2" />
-                  Analisar ({totalAnalyses})
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Gerar Email ({totalEmails} restantes)
                 </>
               )}
             </Button>
-          </div>
-          {!hasAnalysisCredits && (
-            <div className="flex items-center gap-2 rounded-lg bg-warning/10 p-3 text-sm text-warning">
-              <AlertCircle className="h-4 w-4" />
-              Você usou sua análise gratuita. Faça upgrade para mais análises.
-            </div>
-          )}
-          {siteAnalysis && <SiteAnalysisCard analysis={siteAnalysis} />}
-        </CardContent>
-      </Card>
 
-      {/* Email Configuration */}
-      <Card className="glass-card">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Configurar Email
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <NicheSelector value={niche} onChange={setNiche} />
-          <CampaignTypeSelector value={campaignType} onChange={setCampaignType} />
-          <ToneSelector value={tone} onChange={setTone} />
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">
-              Público-alvo
-            </label>
-            <Textarea
-              placeholder="Ex: Mulheres de 25-45 anos, interessadas em moda sustentável, classe B/C, que buscam qualidade e bom custo-benefício..."
-              value={targetAudience}
-              onChange={(e) => setTargetAudience(e.target.value)}
-              rows={3}
-            />
-          </div>
-
-          {/* Content Reference Input */}
-          <ContentReferenceInput 
-            value={contentReference} 
-            onChange={setContentReference} 
-          />
-
-          <Button
-            onClick={handleGenerateEmail}
-            disabled={isGenerating || !hasEmailCredits}
-            className="w-full"
-            size="lg"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Gerando opções de email...
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-5 w-5 mr-2" />
-                Gerar Email ({totalEmails} restantes)
-              </>
+            {!hasEmailCredits && (
+              <div className="flex items-center gap-2 rounded-lg bg-warning/10 p-3 text-sm text-warning">
+                <AlertCircle className="h-4 w-4" />
+                Você usou todos os seus créditos de email. Faça upgrade para continuar.
+              </div>
             )}
-          </Button>
+          </CardContent>
+        </Card>
+      </div>
 
-          {!hasEmailCredits && (
-            <div className="flex items-center gap-2 rounded-lg bg-warning/10 p-3 text-sm text-warning">
-              <AlertCircle className="h-4 w-4" />
-              Você usou todos os seus créditos de email. Faça upgrade para continuar.
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      {/* Right Sidebar - Templates & History */}
+      <div className="hidden lg:block overflow-y-auto">
+        <TemplatesPanel
+          onUseTemplate={handleUseTemplate}
+          onUseCampaign={handleUseCampaign}
+        />
+      </div>
     </div>
   );
 }
