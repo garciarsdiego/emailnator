@@ -1,4 +1,4 @@
-import { Copy, Download, Check, RefreshCw, Code, Type } from "lucide-react";
+import { Copy, Download, Check, RefreshCw, Code, Type, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -39,6 +39,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
   const [selectedCta, setSelectedCta] = useState<string>(options.ctas[0] || "");
   const [editableContent, setEditableContent] = useState<string>(options.content);
   const [editorMode, setEditorMode] = useState<"rich" | "html">("rich");
+  const [showPreview, setShowPreview] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -126,251 +127,330 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
 
   const isComplete = selectedSubject && selectedPreheader && selectedCta;
 
+  // Sanitize HTML for preview - remove prose classes interference
+  const sanitizeHtmlForPreview = (html: string) => {
+    return html
+      .replace(/<p>/g, `<p style="margin: 0 0 1em 0; color: ${bgTextColor};">`)
+      .replace(/<ul>/g, `<ul style="margin: 0.5em 0; padding-left: 1.5em; color: ${bgTextColor};">`)
+      .replace(/<ol>/g, `<ol style="margin: 0.5em 0; padding-left: 1.5em; color: ${bgTextColor};">`)
+      .replace(/<li>/g, `<li style="margin: 0.25em 0;">`)
+      .replace(/<strong>/g, `<strong style="font-weight: 600;">`)
+      .replace(/<a /g, `<a style="color: ${accentColor}; text-decoration: underline;" `);
+  };
+
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[1fr,420px] gap-6">
-      {/* Left Column - Options & Editor */}
-      <div className="space-y-4 overflow-y-auto">
-        {/* Header with actions */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-semibold">Montar Email</h2>
-            <p className="text-sm text-muted-foreground">
-              Selecione as opções e edite o conteúdo
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {onRegenerate && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={onRegenerate}
-                disabled={isRegenerating}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRegenerating ? "animate-spin" : ""}`} />
-                Regenerar
-              </Button>
-            )}
+    <div className="flex flex-col h-full">
+      {/* Header with actions */}
+      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+        <div>
+          <h2 className="text-xl font-semibold">Montar Email</h2>
+          <p className="text-sm text-muted-foreground">
+            Selecione as opções e edite o conteúdo
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowPreview(!showPreview)}
+            className="hidden xl:flex"
+          >
+            {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+            {showPreview ? "Ocultar Preview" : "Mostrar Preview"}
+          </Button>
+          {onRegenerate && (
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={handleCopy}
-              disabled={!isComplete}
+              onClick={onRegenerate}
+              disabled={isRegenerating}
             >
-              {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-              Copiar
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRegenerating ? "animate-spin" : ""}`} />
+              Regenerar
             </Button>
-            <Button 
-              variant="default" 
-              size="sm" 
-              onClick={handleDownloadHTML}
-              disabled={!isComplete}
-            >
-              <Download className="h-4 w-4 mr-1" />
-              Baixar HTML
-            </Button>
+          )}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleCopy}
+            disabled={!isComplete}
+          >
+            {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+            Copiar
+          </Button>
+          <Button 
+            variant="default" 
+            size="sm" 
+            onClick={handleDownloadHTML}
+            disabled={!isComplete}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Baixar HTML
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content Area */}
+      <div className={`flex-1 min-h-0 grid gap-6 ${showPreview ? 'xl:grid-cols-[1fr,380px]' : 'grid-cols-1'}`}>
+        {/* Left Column - Options & Editor */}
+        <div className="overflow-y-auto space-y-4 pr-1">
+          {/* Options Grid - Compact */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="glass-card">
+              <CardContent className="p-3">
+                <EmailOptionsSelector
+                  label="📧 Assunto (1º Envio)"
+                  options={options.subjects}
+                  selected={selectedSubject}
+                  onSelect={setSelectedSubject}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card">
+              <CardContent className="p-3">
+                <EmailOptionsSelector
+                  label="🔄 Assunto (Reenvio)"
+                  options={options.subjectsResend}
+                  selected={selectedSubjectResend}
+                  onSelect={setSelectedSubjectResend}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card">
+              <CardContent className="p-3">
+                <EmailOptionsSelector
+                  label="👁️ Pré-Header"
+                  options={options.preheaders}
+                  selected={selectedPreheader}
+                  onSelect={setSelectedPreheader}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card">
+              <CardContent className="p-3">
+                <EmailOptionsSelector
+                  label="🎯 CTA"
+                  options={options.ctas}
+                  selected={selectedCta}
+                  onSelect={setSelectedCta}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Content Editor */}
+          <Card className="glass-card">
+            <CardHeader className="pb-2 pt-3 px-4">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium">✏️ Conteúdo do Email</CardTitle>
+                <Tabs value={editorMode} onValueChange={(v) => setEditorMode(v as "rich" | "html")}>
+                  <TabsList className="h-7">
+                    <TabsTrigger value="rich" className="text-xs px-2.5 h-6">
+                      <Type className="h-3 w-3 mr-1" />
+                      Visual
+                    </TabsTrigger>
+                    <TabsTrigger value="html" className="text-xs px-2.5 h-6">
+                      <Code className="h-3 w-3 mr-1" />
+                      HTML
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            </CardHeader>
+            <CardContent className="px-4 pb-4">
+              {editorMode === "rich" ? (
+                <RichTextEditor
+                  content={editableContent}
+                  onChange={setEditableContent}
+                />
+              ) : (
+                <Textarea
+                  value={editableContent}
+                  onChange={(e) => setEditableContent(e.target.value)}
+                  className="min-h-[180px] font-mono text-xs"
+                  placeholder="<p>Seu conteúdo HTML aqui...</p>"
+                />
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Tips - Compact */}
+          {tips && tips.length > 0 && (
+            <Card className="glass-card border-accent/30">
+              <CardContent className="p-3">
+                <p className="text-xs font-medium text-accent mb-2">💡 Dicas</p>
+                <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  {tips.map((tip, index) => (
+                    <li key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                      <span className="text-accent">•</span>
+                      <span className="line-clamp-2">{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Mobile Preview Toggle */}
+          <div className="xl:hidden">
+            <Card className="glass-card">
+              <CardHeader className="pb-2 pt-3 px-4">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Preview</CardTitle>
+                  {brandColors && (
+                    <div className="flex items-center gap-1">
+                      {Object.entries(brandColors).map(([key, value]) => {
+                        if (!value || value === "null" || !value.startsWith("#")) return null;
+                        return (
+                          <div
+                            key={key}
+                            className="h-3 w-3 rounded-full border border-border"
+                            style={{ backgroundColor: value }}
+                            title={`${key}: ${value}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div 
+                  className="rounded-lg border border-border overflow-hidden text-sm"
+                  style={{ backgroundColor }}
+                >
+                  {brandName && (
+                    <div className="px-3 py-2 border-b-2" style={{ borderColor: primaryColor }}>
+                      <span className="font-bold text-sm" style={{ color: primaryColor }}>{brandName}</span>
+                    </div>
+                  )}
+                  <div className="p-3 space-y-2">
+                    <div className="space-y-1 pb-2 border-b" style={{ borderColor: `${primaryColor}20` }}>
+                      <p className="text-[10px] uppercase tracking-wide" style={{ color: `${bgTextColor}60` }}>Assunto</p>
+                      <p className="font-semibold text-xs" style={{ color: bgTextColor }}>
+                        {selectedSubject || <span className="opacity-40 italic">Selecione...</span>}
+                      </p>
+                    </div>
+                    <div 
+                      className="text-xs leading-relaxed [&>*]:!m-0 [&>*]:!mb-2"
+                      style={{ color: bgTextColor }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtmlForPreview(editableContent) }}
+                    />
+                    <div className="pt-2 text-center">
+                      <span 
+                        className="inline-block rounded-md px-4 py-1.5 text-xs font-semibold"
+                        style={{ backgroundColor: primaryColor, color: buttonTextColor }}
+                      >
+                        {selectedCta || "CTA"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Options Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="glass-card">
-            <CardContent className="pt-4">
-              <EmailOptionsSelector
-                label="📧 Assunto (Primeiro Envio)"
-                options={options.subjects}
-                selected={selectedSubject}
-                onSelect={setSelectedSubject}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardContent className="pt-4">
-              <EmailOptionsSelector
-                label="🔄 Assunto (Reenvio / A/B)"
-                options={options.subjectsResend}
-                selected={selectedSubjectResend}
-                onSelect={setSelectedSubjectResend}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardContent className="pt-4">
-              <EmailOptionsSelector
-                label="👁️ Pré-Header"
-                options={options.preheaders}
-                selected={selectedPreheader}
-                onSelect={setSelectedPreheader}
-              />
-            </CardContent>
-          </Card>
-
-          <Card className="glass-card">
-            <CardContent className="pt-4">
-              <EmailOptionsSelector
-                label="🎯 CTA"
-                options={options.ctas}
-                selected={selectedCta}
-                onSelect={setSelectedCta}
-              />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Content Editor */}
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">✏️ Conteúdo do Email</CardTitle>
-              <Tabs value={editorMode} onValueChange={(v) => setEditorMode(v as "rich" | "html")}>
-                <TabsList className="h-8">
-                  <TabsTrigger value="rich" className="text-xs px-3 h-7">
-                    <Type className="h-3 w-3 mr-1" />
-                    Visual
-                  </TabsTrigger>
-                  <TabsTrigger value="html" className="text-xs px-3 h-7">
-                    <Code className="h-3 w-3 mr-1" />
-                    HTML
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {editorMode === "rich" ? (
-              <RichTextEditor
-                content={editableContent}
-                onChange={setEditableContent}
-              />
-            ) : (
-              <Textarea
-                value={editableContent}
-                onChange={(e) => setEditableContent(e.target.value)}
-                className="min-h-[250px] font-mono text-sm"
-                placeholder="<p>Seu conteúdo HTML aqui...</p>"
-              />
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Tips */}
-        {tips && tips.length > 0 && (
-          <Card className="glass-card border-accent/30">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm text-accent">💡 Dicas</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                {tips.map((tip, index) => (
-                  <li key={index} className="text-sm text-muted-foreground flex items-start gap-2">
-                    <span className="text-accent">•</span>
-                    {tip}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Right Column - Live Preview */}
-      <div className="lg:sticky lg:top-0 lg:h-fit">
-        <Card className="glass-card">
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base">Preview</CardTitle>
-              {brandColors && (
-                <div className="flex items-center gap-1.5">
-                  {Object.entries(brandColors).map(([key, value]) => {
-                    if (!value || value === "null" || !value.startsWith("#")) return null;
-                    return (
-                      <div
-                        key={key}
-                        className="h-4 w-4 rounded-full border border-border shadow-sm"
-                        style={{ backgroundColor: value }}
-                        title={`${key}: ${value}`}
-                      />
-                    );
-                  })}
+        {/* Right Column - Live Preview (Desktop only) */}
+        {showPreview && (
+          <div className="hidden xl:block overflow-y-auto">
+            <Card className="glass-card h-full">
+              <CardHeader className="pb-2 pt-3 px-4 flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Preview</CardTitle>
+                  {brandColors && (
+                    <div className="flex items-center gap-1">
+                      {Object.entries(brandColors).map(([key, value]) => {
+                        if (!value || value === "null" || !value.startsWith("#")) return null;
+                        return (
+                          <div
+                            key={key}
+                            className="h-3.5 w-3.5 rounded-full border border-border shadow-sm"
+                            style={{ backgroundColor: value }}
+                            title={`${key}: ${value}`}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-            {brandName && (
-              <p className="text-sm text-muted-foreground">{brandName}</p>
-            )}
-          </CardHeader>
-          <CardContent>
-            <div 
-              className="rounded-lg border border-border overflow-hidden"
-              style={{ backgroundColor }}
-            >
-              {/* Brand Header */}
-              {brandName && (
+                {brandName && (
+                  <p className="text-xs text-muted-foreground">{brandName}</p>
+                )}
+              </CardHeader>
+              <CardContent className="px-4 pb-4 flex-1 overflow-hidden">
                 <div 
-                  className="px-4 py-3 border-b-2"
-                  style={{ borderColor: primaryColor }}
+                  className="rounded-lg border border-border overflow-hidden h-full flex flex-col"
+                  style={{ backgroundColor }}
                 >
-                  <span 
-                    className="font-bold"
-                    style={{ color: primaryColor }}
-                  >
-                    {brandName}
-                  </span>
-                </div>
-              )}
+                  {/* Brand Header */}
+                  {brandName && (
+                    <div 
+                      className="px-4 py-2.5 border-b-2 flex-shrink-0"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      <span className="font-bold text-sm" style={{ color: primaryColor }}>
+                        {brandName}
+                      </span>
+                    </div>
+                  )}
 
-              <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-                {/* Subject & Preheader */}
-                <div className="space-y-2 pb-3 border-b" style={{ borderColor: `${primaryColor}20` }}>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: `${bgTextColor}60` }}>
-                      Assunto
-                    </p>
-                    <p className="font-semibold text-sm" style={{ color: bgTextColor }}>
-                      {selectedSubject || <span className="opacity-40 italic">Selecione...</span>}
-                    </p>
+                  <div className="p-4 space-y-3 overflow-y-auto flex-1">
+                    {/* Subject & Preheader */}
+                    <div className="space-y-1.5 pb-3 border-b" style={{ borderColor: `${primaryColor}20` }}>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: `${bgTextColor}60` }}>
+                          Assunto
+                        </p>
+                        <p className="font-semibold text-sm leading-snug" style={{ color: bgTextColor }}>
+                          {selectedSubject || <span className="opacity-40 italic">Selecione...</span>}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: `${bgTextColor}60` }}>
+                          Pré-header
+                        </p>
+                        <p className="text-xs" style={{ color: `${bgTextColor}80` }}>
+                          {selectedPreheader || <span className="opacity-40 italic">Selecione...</span>}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Email Content - Without prose to prevent style conflicts */}
+                    <div
+                      className="text-sm leading-relaxed [&>*]:!m-0 [&>*]:!mb-3 [&_ul]:!pl-5 [&_ol]:!pl-5 [&_li]:!mb-1"
+                      style={{ color: bgTextColor, fontFamily: 'Arial, sans-serif' }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtmlForPreview(editableContent) }}
+                    />
+
+                    {/* CTA Button */}
+                    <div className="pt-3 text-center">
+                      <span 
+                        className="inline-block rounded-lg px-5 py-2 text-sm font-semibold"
+                        style={{ 
+                          backgroundColor: primaryColor, 
+                          color: buttonTextColor,
+                          boxShadow: `0 4px 14px ${primaryColor}40`
+                        }}
+                      >
+                        {selectedCta || "Selecione um CTA..."}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-wide mb-0.5" style={{ color: `${bgTextColor}60` }}>
-                      Pré-header
-                    </p>
-                    <p className="text-xs" style={{ color: `${bgTextColor}80` }}>
-                      {selectedPreheader || <span className="opacity-40 italic">Selecione...</span>}
-                    </p>
-                  </div>
                 </div>
 
-                {/* Email Content */}
-                <div
-                  className="prose prose-sm max-w-none text-sm"
-                  style={{ color: bgTextColor }}
-                  dangerouslySetInnerHTML={{ __html: editableContent }}
-                />
-
-                {/* CTA Button */}
-                <div className="pt-4 text-center">
-                  <span 
-                    className="inline-block rounded-lg px-5 py-2.5 text-sm font-semibold"
-                    style={{ 
-                      backgroundColor: primaryColor, 
-                      color: buttonTextColor,
-                      boxShadow: `0 4px 14px ${primaryColor}40`
-                    }}
-                  >
-                    {selectedCta || "Selecione um CTA..."}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {!isComplete && (
-              <p className="text-xs text-muted-foreground text-center mt-3">
-                Complete as seleções para finalizar
-              </p>
-            )}
-          </CardContent>
-        </Card>
+                {!isComplete && (
+                  <p className="text-[10px] text-muted-foreground text-center mt-2">
+                    Complete as seleções para finalizar
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );

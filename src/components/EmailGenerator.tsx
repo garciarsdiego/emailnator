@@ -190,13 +190,26 @@ export function EmailGenerator() {
     }
   };
 
+  // If email options exist, show the builder in full height mode
+  if (emailOptions) {
+    return (
+      <div className="h-full flex flex-col">
+        <EmailBuilder
+          options={emailOptions}
+          onRegenerate={handleGenerateEmail}
+          isRegenerating={isGenerating}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 overflow-y-auto h-full pb-4">
       {/* Site Analysis Section */}
       <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-primary" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Search className="h-4 w-4 text-primary" />
             Análise de Site (Opcional)
           </CardTitle>
           <p className="text-sm text-muted-foreground">
@@ -241,13 +254,13 @@ export function EmailGenerator() {
 
       {/* Email Configuration */}
       <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Sparkles className="h-4 w-4 text-primary" />
             Configurar Email
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-5">
           <NicheSelector value={niche} onChange={setNiche} />
           <CampaignTypeSelector value={campaignType} onChange={setCampaignType} />
           <ToneSelector value={tone} onChange={setTone} />
@@ -297,15 +310,6 @@ export function EmailGenerator() {
           )}
         </CardContent>
       </Card>
-
-      {/* Email Builder with Options */}
-      {emailOptions && (
-        <EmailBuilder
-          options={emailOptions}
-          onRegenerate={handleGenerateEmail}
-          isRegenerating={isGenerating}
-        />
-      )}
     </div>
   );
 }
