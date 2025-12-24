@@ -63,14 +63,12 @@ export function useCampaigns() {
           tone: campaignData.tone,
           target_audience: campaignData.target_audience,
           site_url: campaignData.site_url,
-          site_analysis: campaignData.site_analysis as Record<string, unknown> | undefined,
+          site_analysis: campaignData.site_analysis ? JSON.parse(JSON.stringify(campaignData.site_analysis)) : null,
         }])
         .select()
         .single();
 
       if (error) throw error;
-      return data;
-    },
       return data;
     },
     onSuccess: () => {
