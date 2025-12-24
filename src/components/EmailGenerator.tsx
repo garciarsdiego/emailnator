@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NicheSelector } from "@/components/NicheSelector";
 import { CampaignTypeSelector } from "@/components/CampaignTypeSelector";
 import { ToneSelector } from "@/components/ToneSelector";
-import { EmailPreview } from "@/components/EmailPreview";
+import { EmailBuilder } from "@/components/EmailBuilder";
 import { SiteAnalysisCard } from "@/components/SiteAnalysisCard";
+import { ContentReferenceInput, ContentReference } from "@/components/ContentReferenceInput";
 import { useUserCredits } from "@/hooks/useUserCredits";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { toast } from "sonner";
@@ -48,11 +49,12 @@ interface SiteAnalysis {
   }>;
 }
 
-interface GeneratedEmail {
-  subject: string;
-  preheader: string;
+interface EmailOptions {
+  subjects: string[];
+  subjectsResend: string[];
+  preheaders: string[];
+  ctas: string[];
   content: string;
-  cta_text: string;
   tips: string[];
   brandName?: string;
   brandColors?: BrandColors;
@@ -64,8 +66,12 @@ export function EmailGenerator() {
   const [tone, setTone] = useState("casual");
   const [targetAudience, setTargetAudience] = useState("");
   const [siteUrl, setSiteUrl] = useState("");
+  const [contentReference, setContentReference] = useState<ContentReference>({ 
+    type: "none", 
+    url: "" 
+  });
   const [siteAnalysis, setSiteAnalysis] = useState<SiteAnalysis | null>(null);
-  const [generatedEmail, setGeneratedEmail] = useState<GeneratedEmail | null>(null);
+  const [emailOptions, setEmailOptions] = useState<EmailOptions | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -105,7 +111,6 @@ export function EmailGenerator() {
       setNiche(analysis.niche);
       setTargetAudience(analysis.targetAudience);
       
-      // Consume credit after successful analysis
       await consumeAnalysisCredit.mutateAsync();
       
       toast.success("Site analisado com sucesso!");
@@ -151,6 +156,7 @@ export function EmailGenerator() {
           targetAudience,
           siteUrl: siteUrl || undefined,
           siteAnalysis: siteAnalysis || undefined,
+          contentReference: contentReference.type !== "none" ? contentReference : undefined,
         }),
       });
 
@@ -160,15 +166,14 @@ export function EmailGenerator() {
       }
 
       const email = await response.json();
-      setGeneratedEmail(email);
+      setEmailOptions(email);
 
-      // Consume credit and save campaign
       await consumeEmailCredit.mutateAsync();
       
       await createCampaign.mutateAsync({
         niche,
         campaign_type: campaignType,
-        subject: email.subject,
+        subject: email.subjects?.[0] || email.subject,
         content: email.content,
         tone,
         target_audience: targetAudience,
@@ -259,6 +264,12 @@ export function EmailGenerator() {
             />
           </div>
 
+          {/* Content Reference Input */}
+          <ContentReferenceInput 
+            value={contentReference} 
+            onChange={setContentReference} 
+          />
+
           <Button
             onClick={handleGenerateEmail}
             disabled={isGenerating || !hasEmailCredits}
@@ -268,7 +279,7 @@ export function EmailGenerator() {
             {isGenerating ? (
               <>
                 <Loader2 className="h-5 w-5 mr-2 animate-spin" />
-                Gerando email com IA...
+                Gerando opções de email...
               </>
             ) : (
               <>
@@ -287,16 +298,12 @@ export function EmailGenerator() {
         </CardContent>
       </Card>
 
-      {/* Generated Email Preview */}
-      {generatedEmail && (
-        <EmailPreview
-          subject={generatedEmail.subject}
-          preheader={generatedEmail.preheader}
-          content={generatedEmail.content}
-          ctaText={generatedEmail.cta_text}
-          tips={generatedEmail.tips}
-          brandColors={generatedEmail.brandColors || siteAnalysis?.branding?.colors}
-          brandName={generatedEmail.brandName || siteAnalysis?.brandName}
+      {/* Email Builder with Options */}
+      {emailOptions && (
+        <EmailBuilder
+          options={emailOptions}
+          onRegenerate={handleGenerateEmail}
+          isRegenerating={isGenerating}
         />
       )}
     </div>
