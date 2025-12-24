@@ -31,14 +31,14 @@ export default function Dashboard() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       <main className="flex-1 overflow-hidden flex flex-col">
-        <div className="container py-4 flex flex-col flex-1 min-h-0">
-          <div className="mb-4 flex-shrink-0">
-            <h1 className="text-xl font-bold text-foreground">Gerador de Emails</h1>
-            <p className="text-muted-foreground text-sm">
+        <div className="container px-3 sm:px-4 lg:px-8 py-3 sm:py-4 flex flex-col flex-1 min-h-0">
+          <div className="mb-3 sm:mb-4 flex-shrink-0">
+            <h1 className="text-lg sm:text-xl font-bold text-foreground">Gerador de Emails</h1>
+            <p className="text-muted-foreground text-xs sm:text-sm">
               Crie emails de marketing profissionais com IA
             </p>
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="flex-1 min-h-0 overflow-hidden">
             <EmailGenerator />
           </div>
         </div>
