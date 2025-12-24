@@ -150,13 +150,22 @@ serve(async (req) => {
         }
       }
     } else {
-      logStep("No active subscription found");
+      logStep("No active Stripe subscription, checking database plan");
       
-      // Reset to free plan
-      await supabaseClient
+      // Check if user has a manually set plan in the database (enterprise, etc.)
+      const { data: profile, error: profileError } = await supabaseClient
         .from("profiles")
-        .update({ plan: "free", trial_ends_at: null })
-        .eq("id", user.id);
+        .select("plan")
+        .eq("id", user.id)
+        .single();
+
+      if (!profileError && profile && profile.plan && profile.plan !== "free") {
+        plan = profile.plan;
+        logStep("Using database plan", { plan });
+      } else {
+        // Reset to free plan only if no manual plan is set
+        logStep("No manual plan found, using free");
+      }
     }
 
     return new Response(JSON.stringify({
