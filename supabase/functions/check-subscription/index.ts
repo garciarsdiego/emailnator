@@ -82,6 +82,16 @@ serve(async (req) => {
     let subscriptionEnd = null;
     let isTrialing = false;
 
+    // First, check if user has a manually set plan in the database (enterprise, etc.)
+    const { data: profile, error: profileError } = await supabaseClient
+      .from("profiles")
+      .select("plan")
+      .eq("id", user.id)
+      .single();
+
+    const dbPlan = profile?.plan || "free";
+    logStep("Database plan check", { dbPlan });
+
     if (hasActiveSub) {
       const subscription = allSubscriptions[0];
       
@@ -93,47 +103,60 @@ serve(async (req) => {
       isTrialing = subscription.status === "trialing";
       
       const productId = subscription.items.data[0]?.price?.product as string;
-      plan = PRODUCT_TO_PLAN[productId] || "free";
+      const stripePlan = PRODUCT_TO_PLAN[productId] || "free";
+      
+      // Use the higher tier plan between Stripe and database
+      // Priority: enterprise > pro > starter > free
+      const planPriority: Record<string, number> = {
+        "free": 0,
+        "starter": 1,
+        "pro": 2,
+        "enterprise": 3,
+      };
+      
+      plan = planPriority[dbPlan] > planPriority[stripePlan] ? dbPlan : stripePlan;
       
       logStep("Active subscription found", { 
         subscriptionId: subscription.id, 
-        plan,
+        stripePlan,
+        dbPlan,
+        finalPlan: plan,
         isTrialing,
         endDate: subscriptionEnd,
-        rawPeriodEnd: subscription.current_period_end,
-        rawStartDate: subscription.start_date,
-        rawTrialEnd: subscription.trial_end
       });
 
-      // Update profile plan in database
-      const planStartedAt = subscription.start_date 
-        ? new Date(subscription.start_date * 1000).toISOString() 
-        : new Date().toISOString();
-      
-      const trialEndsAt = isTrialing && subscription.trial_end 
-        ? new Date(subscription.trial_end * 1000).toISOString() 
-        : null;
+      // Only update profile if Stripe plan is higher than current
+      if (planPriority[stripePlan] > planPriority[dbPlan]) {
+        const planStartedAt = subscription.start_date 
+          ? new Date(subscription.start_date * 1000).toISOString() 
+          : new Date().toISOString();
+        
+        const trialEndsAt = isTrialing && subscription.trial_end 
+          ? new Date(subscription.trial_end * 1000).toISOString() 
+          : null;
 
-      const { error: updateError } = await supabaseClient
-        .from("profiles")
-        .update({ 
-          plan: plan as "free" | "starter" | "pro" | "enterprise",
-          plan_started_at: planStartedAt,
-          trial_ends_at: trialEndsAt,
-        })
-        .eq("id", user.id);
+        const { error: updateError } = await supabaseClient
+          .from("profiles")
+          .update({ 
+            plan: stripePlan as "free" | "starter" | "pro" | "enterprise",
+            plan_started_at: planStartedAt,
+            trial_ends_at: trialEndsAt,
+          })
+          .eq("id", user.id);
 
-      if (updateError) {
-        logStep("Error updating profile", { error: updateError.message });
+        if (updateError) {
+          logStep("Error updating profile", { error: updateError.message });
+        }
       }
 
       // Update credits based on plan
-      const creditsConfig = {
+      const creditsConfig: Record<string, { emails: number; analyses: number }> = {
         starter: { emails: 50, analyses: 10 },
         pro: { emails: 200, analyses: 50 },
+        enterprise: { emails: 1000000, analyses: 1000000 },
       };
 
-      const credits = creditsConfig[plan as keyof typeof creditsConfig];
+      const credits = creditsConfig[plan];
       if (credits) {
         const { error: creditsError } = await supabaseClient
           .from("user_credits")
@@ -150,22 +173,8 @@ serve(async (req) => {
         }
       }
     } else {
-      logStep("No active Stripe subscription, checking database plan");
-      
-      // Check if user has a manually set plan in the database (enterprise, etc.)
-      const { data: profile, error: profileError } = await supabaseClient
-        .from("profiles")
-        .select("plan")
-        .eq("id", user.id)
-        .single();
-
-      if (!profileError && profile && profile.plan && profile.plan !== "free") {
-        plan = profile.plan;
-        logStep("Using database plan", { plan });
-      } else {
-        // Reset to free plan only if no manual plan is set
-        logStep("No manual plan found, using free");
-      }
+      logStep("No active Stripe subscription, using database plan");
+      plan = dbPlan;
     }
 
     return new Response(JSON.stringify({
