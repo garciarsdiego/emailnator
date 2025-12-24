@@ -13,6 +13,13 @@ import { useCampaigns } from "@/hooks/useCampaigns";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Search, AlertCircle } from "lucide-react";
 
+interface BrandColors {
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+  background?: string;
+}
+
 interface SiteAnalysis {
   brandName: string;
   description: string;
@@ -21,6 +28,24 @@ interface SiteAnalysis {
   targetAudience: string;
   strengths: string[];
   emailOpportunities: string[];
+  branding?: {
+    colors?: BrandColors;
+    fonts?: {
+      heading?: string;
+      body?: string;
+    };
+    visualStyle?: string;
+  };
+  communication?: {
+    tone?: string;
+    copyStyle?: string;
+    keyPhrases?: string[];
+  };
+  activeOffers?: Array<{
+    type?: string;
+    description?: string;
+    code?: string;
+  }>;
 }
 
 interface GeneratedEmail {
@@ -29,6 +54,8 @@ interface GeneratedEmail {
   content: string;
   cta_text: string;
   tips: string[];
+  brandName?: string;
+  brandColors?: BrandColors;
 }
 
 export function EmailGenerator() {
@@ -268,6 +295,8 @@ export function EmailGenerator() {
           content={generatedEmail.content}
           ctaText={generatedEmail.cta_text}
           tips={generatedEmail.tips}
+          brandColors={generatedEmail.brandColors || siteAnalysis?.branding?.colors}
+          brandName={generatedEmail.brandName || siteAnalysis?.brandName}
         />
       )}
     </div>

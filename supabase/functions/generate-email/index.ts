@@ -5,17 +5,45 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface SiteAnalysis {
+  brandName?: string;
+  description?: string;
+  slogan?: string;
+  products?: string[];
+  branding?: {
+    colors?: {
+      primary?: string;
+      secondary?: string;
+      accent?: string;
+      background?: string;
+    };
+    fonts?: {
+      heading?: string;
+      body?: string;
+    };
+    visualStyle?: string;
+  };
+  communication?: {
+    tone?: string;
+    copyStyle?: string;
+    keyPhrases?: string[];
+  };
+  activeOffers?: Array<{
+    type?: string;
+    description?: string;
+    code?: string;
+  }>;
+  priceRange?: string;
+  targetAudience?: string;
+}
+
 interface EmailRequest {
   niche: string;
   campaignType: string;
   tone: string;
   targetAudience: string;
   siteUrl?: string;
-  siteAnalysis?: {
-    products?: string[];
-    brandName?: string;
-    description?: string;
-  };
+  siteAnalysis?: SiteAnalysis;
   language?: string;
 }
 
@@ -71,18 +99,50 @@ serve(async (req) => {
       emotional: "emocional e inspirador",
     };
 
-    let siteContext = "";
+    // Build rich context from site analysis
+    let brandContext = "";
     if (siteAnalysis) {
-      siteContext = `
-Informações do site analisado:
-- Nome da marca: ${siteAnalysis.brandName || "Não identificado"}
+      brandContext = `
+=== INFORMAÇÕES DA MARCA (USE PARA PERSONALIZAR) ===
+
+IDENTIDADE DA MARCA:
+- Nome: ${siteAnalysis.brandName || "Não identificado"}
 - Descrição: ${siteAnalysis.description || "Não disponível"}
-- Produtos principais: ${siteAnalysis.products?.join(", ") || "Não identificados"}
+- Slogan: ${siteAnalysis.slogan || "Não identificado"}
+
+IDENTIDADE VISUAL:
+- Cor primária: ${siteAnalysis.branding?.colors?.primary || "Não identificada"}
+- Cor secundária: ${siteAnalysis.branding?.colors?.secondary || "Não identificada"}
+- Cor de destaque: ${siteAnalysis.branding?.colors?.accent || "Não identificada"}
+- Estilo visual: ${siteAnalysis.branding?.visualStyle || "Não identificado"}
+- Fontes: ${siteAnalysis.branding?.fonts?.heading || "Não identificadas"} / ${siteAnalysis.branding?.fonts?.body || ""}
+
+TOM DE COMUNICAÇÃO DA MARCA:
+- Tom atual da marca: ${siteAnalysis.communication?.tone || "Não identificado"}
+- Estilo de copy: ${siteAnalysis.communication?.copyStyle || "Não identificado"}
+- Expressões frequentes: ${siteAnalysis.communication?.keyPhrases?.join(", ") || "Não identificadas"}
+
+OFERTAS ATIVAS (INCORPORE NO EMAIL):
+${siteAnalysis.activeOffers?.map(o => `- ${o.type}: ${o.description}${o.code ? ` (Código: ${o.code})` : ""}`).join("\n") || "- Nenhuma oferta identificada"}
+
+PRODUTOS:
+- Categorias: ${siteAnalysis.products?.join(", ") || "Não identificados"}
+- Faixa de preço: ${siteAnalysis.priceRange || "Não identificada"}
+
+PÚBLICO-ALVO DA MARCA: ${siteAnalysis.targetAudience || targetAudience}
 ${siteUrl ? `- URL: ${siteUrl}` : ""}
+
+IMPORTANTE: Use as expressões, tom e estilo de comunicação da marca para criar um email que pareça ter sido escrito pela própria empresa. Incorpore ofertas ativas quando relevante.
 `;
     }
 
-    const systemPrompt = `Você é um especialista em email marketing para e-commerce brasileiro. Sua função é criar emails de marketing altamente persuasivos e otimizados para conversão.
+    // Determine the effective tone - prioritize brand's own tone if available
+    const effectiveTone = siteAnalysis?.communication?.tone || tone;
+    const toneInstruction = siteAnalysis?.communication?.tone 
+      ? `Use o tom "${toneDescriptions[effectiveTone] || effectiveTone}" que é o estilo natural da marca.`
+      : `Use o tom ${toneDescriptions[tone] || tone} conforme solicitado.`;
+
+    const systemPrompt = `Você é um especialista em email marketing para e-commerce brasileiro. Sua função é criar emails de marketing altamente persuasivos, personalizados e otimizados para conversão.
 
 REGRAS OBRIGATÓRIAS:
 1. Escreva SEMPRE em português brasileiro
@@ -95,6 +155,13 @@ REGRAS OBRIGATÓRIAS:
 8. Use bullet points para benefícios
 9. Mantenha parágrafos curtos (2-3 linhas)
 
+PERSONALIZAÇÃO COM BASE NA ANÁLISE:
+- Se houver informações da marca, USE o tom e estilo de comunicação dela
+- Se houver ofertas ativas, INCORPORE-AS naturalmente no email
+- Se houver expressões frequentes da marca, USE-AS no copy
+- Mantenha consistência com a identidade visual e verbal da marca
+- ${toneInstruction}
+
 FORMATO DE RESPOSTA:
 Retorne um JSON válido com a seguinte estrutura:
 {
@@ -102,18 +169,21 @@ Retorne um JSON válido com a seguinte estrutura:
   "preheader": "Texto de pré-visualização (max 100 chars)",
   "content": "Corpo do email em HTML simples",
   "cta_text": "Texto do botão CTA",
-  "tips": ["Dica 1 de otimização", "Dica 2 de otimização"]
+  "tips": ["Dica 1 de otimização", "Dica 2 de otimização"],
+  "personalization_notes": "Notas sobre como o email foi personalizado para esta marca"
 }`;
 
     const userPrompt = `Crie um email de marketing com as seguintes especificações:
 
 NICHO: ${nicheDescriptions[niche] || niche}
 TIPO DE CAMPANHA: ${campaignTypeDescriptions[campaignType] || campaignType}
-TOM: ${toneDescriptions[tone] || tone}
+TOM SOLICITADO: ${toneDescriptions[tone] || tone}
 PÚBLICO-ALVO: ${targetAudience}
-${siteContext}
+${brandContext}
 
-Gere um email completo, persuasivo e otimizado para conversão.`;
+Gere um email completo, ALTAMENTE PERSONALIZADO para esta marca, persuasivo e otimizado para conversão.`;
+
+    console.log("Generating email for:", siteAnalysis?.brandName || niche);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -170,6 +240,14 @@ Gere um email completo, persuasivo e otimizado para conversão.`;
         tips: ["Personalize o email com o nome do cliente", "Adicione imagens dos produtos"],
       };
     }
+
+    // Include brand info in response for preview styling
+    if (siteAnalysis) {
+      emailData.brandName = siteAnalysis.brandName;
+      emailData.brandColors = siteAnalysis.branding?.colors;
+    }
+
+    console.log("Email generated successfully for:", siteAnalysis?.brandName || "generic");
 
     return new Response(JSON.stringify(emailData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

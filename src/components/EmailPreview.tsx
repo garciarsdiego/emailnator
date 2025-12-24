@@ -4,16 +4,58 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import { toast } from "sonner";
 
+interface BrandColors {
+  primary?: string;
+  secondary?: string;
+  accent?: string;
+  background?: string;
+}
+
 interface EmailPreviewProps {
   subject: string;
   preheader: string;
   content: string;
   ctaText: string;
   tips: string[];
+  brandColors?: BrandColors;
+  brandName?: string;
 }
 
-export function EmailPreview({ subject, preheader, content, ctaText, tips }: EmailPreviewProps) {
+export function EmailPreview({ 
+  subject, 
+  preheader, 
+  content, 
+  ctaText, 
+  tips,
+  brandColors,
+  brandName 
+}: EmailPreviewProps) {
   const [copied, setCopied] = useState(false);
+
+  // Resolve colors - use brand colors if available, otherwise use defaults
+  const primaryColor = brandColors?.primary && brandColors.primary !== "null" 
+    ? brandColors.primary 
+    : "#6366f1";
+  const backgroundColor = brandColors?.background && brandColors.background !== "null" 
+    ? brandColors.background 
+    : "#ffffff";
+  const accentColor = brandColors?.accent && brandColors.accent !== "null" 
+    ? brandColors.accent 
+    : primaryColor;
+
+  // Check if color is light or dark for text contrast
+  const isLightColor = (color: string) => {
+    if (!color || !color.startsWith("#")) return true;
+    const hex = color.replace("#", "");
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luminance > 0.5;
+  };
+
+  const buttonTextColor = isLightColor(primaryColor) ? "#000000" : "#ffffff";
+  const bgTextColor = isLightColor(backgroundColor) ? "#333333" : "#ffffff";
 
   const handleCopy = async () => {
     const fullEmail = `Assunto: ${subject}\n\nPré-header: ${preheader}\n\n${content.replace(/<[^>]*>/g, "")}`;
@@ -32,13 +74,44 @@ export function EmailPreview({ subject, preheader, content, ctaText, tips }: Ema
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${subject}</title>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
-    .cta-button { display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+    body { 
+      font-family: Arial, sans-serif; 
+      line-height: 1.6; 
+      color: ${bgTextColor}; 
+      max-width: 600px; 
+      margin: 0 auto; 
+      padding: 20px;
+      background-color: ${backgroundColor};
+    }
+    .cta-button { 
+      display: inline-block; 
+      background: ${primaryColor}; 
+      color: ${buttonTextColor}; 
+      padding: 12px 24px; 
+      text-decoration: none; 
+      border-radius: 8px; 
+      font-weight: bold; 
+      margin: 20px 0; 
+    }
+    .header {
+      border-bottom: 3px solid ${primaryColor};
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .brand-name {
+      color: ${primaryColor};
+      font-size: 24px;
+      font-weight: bold;
+    }
+    a { color: ${accentColor}; }
   </style>
 </head>
 <body>
+  ${brandName ? `<div class="header"><span class="brand-name">${brandName}</span></div>` : ""}
   ${content}
-  <a href="#" class="cta-button">${ctaText}</a>
+  <div style="text-align: center;">
+    <a href="#" class="cta-button">${ctaText}</a>
+  </div>
 </body>
 </html>`;
 
@@ -56,7 +129,14 @@ export function EmailPreview({ subject, preheader, content, ctaText, tips }: Ema
     <div className="space-y-4">
       <Card className="glass-card">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
-          <CardTitle className="text-lg">Preview do Email</CardTitle>
+          <div className="space-y-1">
+            <CardTitle className="text-lg">Preview do Email</CardTitle>
+            {brandName && (
+              <p className="text-sm text-muted-foreground">
+                Personalizado para <span className="font-medium">{brandName}</span>
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={handleCopy}>
               {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
@@ -69,21 +149,70 @@ export function EmailPreview({ subject, preheader, content, ctaText, tips }: Ema
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg border border-border bg-background p-4">
-            <div className="mb-4 border-b border-border pb-4">
-              <p className="text-xs text-muted-foreground mb-1">Assunto:</p>
-              <p className="font-semibold text-foreground">{subject}</p>
-              <p className="text-xs text-muted-foreground mt-2 mb-1">Pré-header:</p>
-              <p className="text-sm text-muted-foreground">{preheader}</p>
+          {/* Color palette indicator */}
+          {brandColors && (
+            <div className="flex items-center gap-2 pb-2 border-b border-border">
+              <span className="text-xs text-muted-foreground">Cores da marca:</span>
+              <div className="flex gap-1">
+                {Object.entries(brandColors).map(([key, value]) => {
+                  if (!value || value === "null" || !value.startsWith("#")) return null;
+                  return (
+                    <div
+                      key={key}
+                      className="h-5 w-5 rounded-full border border-border shadow-sm"
+                      style={{ backgroundColor: value }}
+                      title={`${key}: ${value}`}
+                    />
+                  );
+                })}
+              </div>
             </div>
-            <div
-              className="prose prose-sm max-w-none text-foreground"
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-            <div className="mt-6 text-center">
-              <button className="inline-block rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground">
-                {ctaText}
-              </button>
+          )}
+
+          {/* Email preview with brand styling */}
+          <div 
+            className="rounded-lg border border-border overflow-hidden"
+            style={{ backgroundColor }}
+          >
+            {/* Email header with brand */}
+            {brandName && (
+              <div 
+                className="px-4 py-3 border-b"
+                style={{ borderColor: primaryColor }}
+              >
+                <span 
+                  className="font-bold text-lg"
+                  style={{ color: primaryColor }}
+                >
+                  {brandName}
+                </span>
+              </div>
+            )}
+
+            <div className="p-4">
+              <div className="mb-4 pb-4 border-b" style={{ borderColor: `${primaryColor}20` }}>
+                <p className="text-xs mb-1" style={{ color: `${bgTextColor}80` }}>Assunto:</p>
+                <p className="font-semibold" style={{ color: bgTextColor }}>{subject}</p>
+                <p className="text-xs mt-2 mb-1" style={{ color: `${bgTextColor}80` }}>Pré-header:</p>
+                <p className="text-sm" style={{ color: `${bgTextColor}99` }}>{preheader}</p>
+              </div>
+              <div
+                className="prose prose-sm max-w-none"
+                style={{ color: bgTextColor }}
+                dangerouslySetInnerHTML={{ __html: content }}
+              />
+              <div className="mt-6 text-center">
+                <button 
+                  className="inline-block rounded-lg px-6 py-3 font-semibold transition-transform hover:scale-105"
+                  style={{ 
+                    backgroundColor: primaryColor, 
+                    color: buttonTextColor,
+                    boxShadow: `0 4px 14px ${primaryColor}40`
+                  }}
+                >
+                  {ctaText}
+                </button>
+              </div>
             </div>
           </div>
         </CardContent>
