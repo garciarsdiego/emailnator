@@ -1,0 +1,65 @@
+export interface EmailSequence {
+  id: string;
+  user_id: string;
+  name: string;
+  description?: string;
+  niche?: string;
+  tone?: string;
+  status: "draft" | "active" | "paused";
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SequenceEmail {
+  id: string;
+  sequence_id: string;
+  position: number;
+  name: string;
+  subject: string;
+  preheader?: string;
+  content: string;
+  delay_days: number;
+  trigger_type: "time_delay" | "action" | "condition";
+  created_at: string;
+  updated_at: string;
+}
+
+export const FUNNEL_STAGES = [
+  {
+    id: 1,
+    name: "Consciência",
+    description: "Apresentar sua marca e criar conexão inicial",
+    emailType: "Boas-vindas / Apresentação",
+    delay: 0,
+  },
+  {
+    id: 2,
+    name: "Interesse",
+    description: "Educar sobre o problema e sua solução",
+    emailType: "Educacional / Valor",
+    delay: 2,
+  },
+  {
+    id: 3,
+    name: "Consideração",
+    description: "Mostrar provas sociais e cases de sucesso",
+    emailType: "Prova Social / Testemunhos",
+    delay: 4,
+  },
+  {
+    id: 4,
+    name: "Intenção",
+    description: "Apresentar oferta com urgência",
+    emailType: "Oferta Principal",
+    delay: 6,
+  },
+  {
+    id: 5,
+    name: "Decisão",
+    description: "Último empurrão com escassez",
+    emailType: "Última Chance / Escassez",
+    delay: 7,
+  },
+] as const;
+
+export type FunnelStage = typeof FUNNEL_STAGES[number];

@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
 import Referrals from "./pages/Referrals";
 import Pricing from "./pages/Pricing";
+import EmailBuilder from "./pages/EmailBuilder";
+import FunnelBuilder from "./pages/FunnelBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +30,8 @@ const App = () => (
             <Route path="/history" element={<History />} />
             <Route path="/referrals" element={<Referrals />} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/email-builder" element={<EmailBuilder />} />
+            <Route path="/funnel" element={<FunnelBuilder />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

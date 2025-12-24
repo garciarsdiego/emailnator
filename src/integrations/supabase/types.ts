@@ -113,6 +113,72 @@ export type Database = {
         }
         Relationships: []
       }
+      email_blocks: {
+        Row: {
+          block_type: string
+          content: Json
+          created_at: string
+          email_id: string | null
+          id: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          block_type: string
+          content?: Json
+          created_at?: string
+          email_id?: string | null
+          id?: string
+          position?: number
+          user_id: string
+        }
+        Update: {
+          block_type?: string
+          content?: Json
+          created_at?: string
+          email_id?: string | null
+          id?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_sequences: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          niche: string | null
+          status: string
+          tone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          niche?: string | null
+          status?: string
+          tone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          niche?: string | null
+          status?: string
+          tone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           campaign_type: string | null
@@ -229,6 +295,56 @@ export type Database = {
           status?: string
         }
         Relationships: []
+      }
+      sequence_emails: {
+        Row: {
+          content: string
+          created_at: string
+          delay_days: number
+          id: string
+          name: string
+          position: number
+          preheader: string | null
+          sequence_id: string
+          subject: string
+          trigger_type: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          delay_days?: number
+          id?: string
+          name: string
+          position?: number
+          preheader?: string | null
+          sequence_id: string
+          subject: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          delay_days?: number
+          id?: string
+          name?: string
+          position?: number
+          preheader?: string | null
+          sequence_id?: string
+          subject?: string
+          trigger_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sequence_emails_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "email_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       site_analyses: {
         Row: {
