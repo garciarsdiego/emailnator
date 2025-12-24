@@ -127,44 +127,49 @@ ${brandingData.images ? Object.entries(brandingData.images).map(([k, v]) => `- $
 
 VOCÊ DEVE ANALISAR E EXTRAIR:
 
-1. **Identidade Visual**:
+1. **Idioma do Site** (MUITO IMPORTANTE):
+   - Detecte o idioma principal usado no site (pt-BR, en-US, es, fr, de, it, etc)
+   - Baseie-se no conteúdo textual, meta tags, e estrutura do site
+
+2. **Identidade Visual**:
    - Cores principais (primária, secundária, de destaque, de fundo) - USE OS DADOS DE BRANDING SE DISPONÍVEIS
    - Fontes utilizadas (títulos, corpo do texto)
    - Estilo visual geral (minimalista, vibrante, elegante, moderno, etc)
 
-2. **Tom de Voz e Comunicação**:
+3. **Tom de Voz e Comunicação**:
    - Tom predominante (formal, casual, divertido, sofisticado, urgente)
    - Estilo de copy (direto, storytelling, emocional, técnico)
    - Palavras-chave e expressões frequentes
 
-3. **Ofertas e Promoções Ativas**:
+4. **Ofertas e Promoções Ativas**:
    - Descontos em vigor
    - Cupons ou códigos promocionais visíveis
    - Campanhas sazonais (Black Friday, Natal, etc)
    - Condições especiais (frete grátis, parcelamento)
 
-4. **Elementos de Marca**:
+5. **Elementos de Marca**:
    - Nome da marca/loja
    - URL do logo (se identificável)
    - Slogan ou tagline
 
-5. **Catálogo e Produtos**:
+6. **Catálogo e Produtos**:
    - Categorias principais de produtos
    - Produtos em destaque
    - Link do catálogo/loja (se identificável)
    - Faixa de preços aparente
 
-6. **Público-Alvo**:
+7. **Público-Alvo**:
    - Perfil demográfico aparente
    - Interesses e valores
 
-7. **Oportunidades de Email Marketing**:
+8. **Oportunidades de Email Marketing**:
    - Sugestões baseadas na análise
 
 IMPORTANTE: Se dados de branding (cores, fontes, logo) foram extraídos automaticamente, USE-OS na sua resposta.
 
 FORMATO DE RESPOSTA (JSON):
 {
+  "language": "pt-BR ou en-US ou es ou outro código de idioma detectado",
   "brandName": "Nome da marca",
   "description": "Descrição da loja em 1-2 frases",
   "slogan": "Slogan ou tagline (se houver)",
@@ -263,8 +268,9 @@ Extraia o máximo de informações possível para personalizar campanhas de emai
       console.error("Error parsing AI response:", parseError);
       // Fallback with branding data if available
       analysisData = {
+        language: "pt-BR",
         brandName: "Loja Online",
-        description: "E-commerce brasileiro",
+        description: "E-commerce",
         slogan: null,
         logoDescription: brandingData?.logo || null,
         niche: "other",
@@ -285,9 +291,9 @@ Extraia o máximo de informações possível para personalizar campanhas de emai
         products: [],
         catalogUrl: formattedUrl,
         priceRange: null,
-        targetAudience: "Consumidores brasileiros",
+        targetAudience: "Consumers",
         strengths: [],
-        emailOpportunities: ["E-mail de boas-vindas", "Recuperação de carrinho", "Promoções sazonais"],
+        emailOpportunities: ["Welcome email", "Cart recovery", "Seasonal promotions"],
       };
     }
 
@@ -314,7 +320,7 @@ Extraia o máximo de informações possível para personalizar campanhas de emai
       }
     }
 
-    console.log("Analysis complete for:", formattedUrl);
+    console.log("Analysis complete for:", formattedUrl, "- Language:", analysisData.language);
 
     return new Response(JSON.stringify(analysisData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
