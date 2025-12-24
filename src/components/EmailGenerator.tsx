@@ -11,12 +11,13 @@ import { SiteAnalysisCard } from "@/components/SiteAnalysisCard";
 import { ContentReferenceInput, ContentReference } from "@/components/ContentReferenceInput";
 import { TemplatesPanel } from "@/components/TemplatesPanel";
 import { BrandManualEditor } from "@/components/BrandManualEditor";
+import { VisualEmailBuilder, EmailContent } from "@/components/email-builder/VisualEmailBuilder";
 import { useUserCredits } from "@/hooks/useUserCredits";
 import { useCampaigns, Campaign } from "@/hooks/useCampaigns";
 import { useBrandManual } from "@/hooks/useBrandManual";
 import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
 import { toast } from "sonner";
-import { Loader2, Sparkles, Search, AlertCircle, Palette, ArrowLeft } from "lucide-react";
+import { Loader2, Sparkles, Search, AlertCircle, Palette, ArrowLeft, Paintbrush } from "lucide-react";
 
 interface BrandColors {
   primary?: string;
@@ -78,6 +79,7 @@ export function EmailGenerator() {
   const [emailOptions, setEmailOptions] = useState<EmailOptions | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [visualEditorContent, setVisualEditorContent] = useState<EmailContent | null>(null);
 
   const { hasEmailCredits, hasAnalysisCredits, consumeEmailCredit, consumeAnalysisCredit, totalEmails, totalAnalyses } =
     useUserCredits();
@@ -276,6 +278,50 @@ export function EmailGenerator() {
     }
   };
 
+  // Handle opening visual editor with content
+  const handleOpenVisualEditor = (content: EmailContent) => {
+    setVisualEditorContent({
+      ...content,
+      brandName: brandManual?.brand_name || content.brandName,
+    });
+  };
+
+  // Handle saving from visual editor
+  const handleVisualSave = async (blocks: any[], html: string, metadata?: { subject: string; preheader: string }) => {
+    if (metadata) {
+      try {
+        await saveTemplate.mutateAsync({
+          name: `Visual - ${metadata.subject.slice(0, 30)}...`,
+          subject: metadata.subject,
+          preheader: metadata.preheader,
+          content: html,
+          cta: null,
+          campaign_type: campaignType || null,
+          niche: niche || null,
+          tone: tone || null,
+        });
+        toast.success("Email salvo como template!");
+      } catch (error) {
+        toast.error("Erro ao salvar template");
+      }
+    }
+    setVisualEditorContent(null);
+  };
+
+  // If visual editor is active, show it
+  if (visualEditorContent) {
+    return (
+      <div className="h-full flex flex-col">
+        <VisualEmailBuilder
+          initialContent={visualEditorContent}
+          showMetadataFields={true}
+          onSave={handleVisualSave}
+          onCancel={() => setVisualEditorContent(null)}
+        />
+      </div>
+    );
+  }
+
   // If email options exist, show the builder in full height mode
   if (emailOptions) {
     return (
@@ -284,6 +330,19 @@ export function EmailGenerator() {
           <Button variant="ghost" size="sm" onClick={() => setEmailOptions(null)}>
             <ArrowLeft className="h-4 w-4 mr-1" />
             Voltar
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => handleOpenVisualEditor({
+              subject: emailOptions.subjects?.[0] || "",
+              content: emailOptions.content,
+              cta: emailOptions.ctas?.[0],
+              brandName: emailOptions.brandName,
+            })}
+          >
+            <Paintbrush className="h-4 w-4 mr-1" />
+            Editor Visual
           </Button>
         </div>
         <EmailBuilder
@@ -433,6 +492,7 @@ export function EmailGenerator() {
         <TemplatesPanel
           onUseTemplate={handleUseTemplate}
           onUseCampaign={handleUseCampaign}
+          onEditVisual={handleOpenVisualEditor}
         />
       </div>
     </div>

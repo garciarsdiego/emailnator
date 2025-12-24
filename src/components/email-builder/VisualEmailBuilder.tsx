@@ -1,22 +1,50 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useEmailBlocks } from "@/hooks/useEmailBlocks";
 import { BlockPalette } from "./BlockPalette";
 import { BlockEditor } from "./BlockEditor";
 import { EmailCanvas } from "./EmailCanvas";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Eye, Code, Trash2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Download, Eye, Code, Trash2, Save } from "lucide-react";
 import { toast } from "sonner";
-import { EmailBlock, BlockContent } from "@/types/emailBuilder";
+import { EmailBlock } from "@/types/emailBuilder";
+import { createBlocksFromEmailData } from "@/lib/htmlToBlocks";
+
+export interface EmailContent {
+  subject?: string;
+  preheader?: string;
+  content?: string;
+  cta?: string;
+  brandName?: string;
+}
 
 interface VisualEmailBuilderProps {
   initialBlocks?: EmailBlock[];
-  onSave?: (blocks: EmailBlock[], html: string) => void;
+  initialContent?: EmailContent;
+  onSave?: (blocks: EmailBlock[], html: string, metadata?: { subject: string; preheader: string }) => void;
   onCancel?: () => void;
+  showMetadataFields?: boolean;
 }
 
-export function VisualEmailBuilder({ initialBlocks, onSave, onCancel }: VisualEmailBuilderProps) {
+export function VisualEmailBuilder({ 
+  initialBlocks, 
+  initialContent,
+  onSave, 
+  onCancel,
+  showMetadataFields = false,
+}: VisualEmailBuilderProps) {
+  // Convert initial content to blocks if provided
+  const getInitialBlocks = () => {
+    if (initialBlocks) return initialBlocks;
+    if (initialContent?.content) {
+      return createBlocksFromEmailData(initialContent);
+    }
+    return [];
+  };
+
   const {
     blocks,
     selectedBlockId,
@@ -28,9 +56,19 @@ export function VisualEmailBuilder({ initialBlocks, onSave, onCancel }: VisualEm
     moveBlock,
     duplicateBlock,
     clearBlocks,
-  } = useEmailBlocks(initialBlocks);
+  } = useEmailBlocks(getInitialBlocks());
 
   const [previewMode, setPreviewMode] = useState<"edit" | "preview" | "html">("edit");
+  const [subject, setSubject] = useState(initialContent?.subject || "");
+  const [preheader, setPreheader] = useState(initialContent?.preheader || "");
+
+  // Update subject/preheader if initialContent changes
+  useEffect(() => {
+    if (initialContent) {
+      setSubject(initialContent.subject || "");
+      setPreheader(initialContent.preheader || "");
+    }
+  }, [initialContent]);
 
   const generateHTML = (): string => {
     const bodyContent = blocks.map((block) => generateBlockHTML(block)).join("\n");
@@ -124,11 +162,39 @@ export function VisualEmailBuilder({ initialBlocks, onSave, onCancel }: VisualEm
 
   const handleSave = () => {
     const html = generateHTML();
-    onSave?.(blocks, html);
+    onSave?.(blocks, html, { subject, preheader });
   };
 
   return (
     <div className="h-full flex flex-col">
+      {/* Metadata Fields */}
+      {showMetadataFields && (
+        <div className="p-3 border-b bg-muted/30 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="subject" className="text-xs font-medium">Assunto</Label>
+              <Input
+                id="subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Assunto do email..."
+                className="h-9"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="preheader" className="text-xs font-medium">Pré-header</Label>
+              <Input
+                id="preheader"
+                value={preheader}
+                onChange={(e) => setPreheader(e.target.value)}
+                placeholder="Texto de pré-visualização..."
+                className="h-9"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Toolbar */}
       <div className="flex items-center justify-between p-3 border-b bg-background/95 backdrop-blur">
         <div className="flex items-center gap-2">
@@ -162,6 +228,7 @@ export function VisualEmailBuilder({ initialBlocks, onSave, onCancel }: VisualEm
           )}
           {onSave && (
             <Button size="sm" onClick={handleSave}>
+              <Save className="h-4 w-4 mr-1" />
               Salvar
             </Button>
           )}
