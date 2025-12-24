@@ -140,23 +140,23 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header with actions */}
-      <div className="flex items-center justify-between mb-4 flex-shrink-0">
+      {/* Header with actions - responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 flex-shrink-0">
         <div>
-          <h2 className="text-xl font-semibold">Montar Email</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-lg sm:text-xl font-semibold">Montar Email</h2>
+          <p className="text-xs sm:text-sm text-muted-foreground">
             Selecione as opções e edite o conteúdo
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowPreview(!showPreview)}
-            className="hidden xl:flex"
+            className="hidden lg:flex"
           >
             {showPreview ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
-            {showPreview ? "Ocultar Preview" : "Mostrar Preview"}
+            {showPreview ? "Ocultar" : "Preview"}
           </Button>
           {onRegenerate && (
             <Button 
@@ -165,8 +165,8 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
               onClick={onRegenerate}
               disabled={isRegenerating}
             >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRegenerating ? "animate-spin" : ""}`} />
-              Regenerar
+              <RefreshCw className={`h-4 w-4 ${isRegenerating ? "animate-spin" : ""} sm:mr-2`} />
+              <span className="hidden sm:inline">Regenerar</span>
             </Button>
           )}
           <Button 
@@ -175,8 +175,8 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             onClick={handleCopy}
             disabled={!isComplete}
           >
-            {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
-            Copiar
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            <span className="hidden sm:inline sm:ml-1">Copiar</span>
           </Button>
           <Button 
             variant="default" 
@@ -184,20 +184,20 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             onClick={handleDownloadHTML}
             disabled={!isComplete}
           >
-            <Download className="h-4 w-4 mr-1" />
-            Baixar HTML
+            <Download className="h-4 w-4 sm:mr-1" />
+            <span className="hidden sm:inline">HTML</span>
           </Button>
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <div className={`flex-1 min-h-0 grid gap-6 ${showPreview ? 'xl:grid-cols-[1fr,380px]' : 'grid-cols-1'}`}>
+      {/* Main Content Area - responsive grid */}
+      <div className={`flex-1 min-h-0 grid gap-4 lg:gap-6 ${showPreview ? 'lg:grid-cols-[1fr,340px] xl:grid-cols-[1fr,380px]' : 'grid-cols-1'}`}>
         {/* Left Column - Options & Editor */}
-        <div className="overflow-y-auto space-y-4 pr-1">
-          {/* Options Grid - Compact */}
-          <div className="grid grid-cols-2 gap-3">
+        <div className="overflow-y-auto space-y-3 sm:space-y-4 pr-1">
+          {/* Options Grid - Responsive: 1 col mobile, 2 cols tablet+ */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
             <Card className="glass-card">
-              <CardContent className="p-3">
+              <CardContent className="p-2.5 sm:p-3">
                 <EmailOptionsSelector
                   label="📧 Assunto (1º Envio)"
                   options={options.subjects}
@@ -208,7 +208,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             </Card>
 
             <Card className="glass-card">
-              <CardContent className="p-3">
+              <CardContent className="p-2.5 sm:p-3">
                 <EmailOptionsSelector
                   label="🔄 Assunto (Reenvio)"
                   options={options.subjectsResend}
@@ -219,7 +219,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             </Card>
 
             <Card className="glass-card">
-              <CardContent className="p-3">
+              <CardContent className="p-2.5 sm:p-3">
                 <EmailOptionsSelector
                   label="👁️ Pré-Header"
                   options={options.preheaders}
@@ -230,7 +230,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             </Card>
 
             <Card className="glass-card">
-              <CardContent className="p-3">
+              <CardContent className="p-2.5 sm:p-3">
                 <EmailOptionsSelector
                   label="🎯 CTA"
                   options={options.ctas}
@@ -277,15 +277,15 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             </CardContent>
           </Card>
 
-          {/* Tips - Compact */}
+          {/* Tips - Compact & Responsive */}
           {tips && tips.length > 0 && (
             <Card className="glass-card border-accent/30">
-              <CardContent className="p-3">
+              <CardContent className="p-2.5 sm:p-3">
                 <p className="text-xs font-medium text-accent mb-2">💡 Dicas</p>
-                <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                   {tips.map((tip, index) => (
                     <li key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
-                      <span className="text-accent">•</span>
+                      <span className="text-accent shrink-0">•</span>
                       <span className="line-clamp-2">{tip}</span>
                     </li>
                   ))}
@@ -294,10 +294,10 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
             </Card>
           )}
 
-          {/* Mobile Preview Toggle */}
-          <div className="xl:hidden">
+          {/* Mobile/Tablet Preview - visible below lg */}
+          <div className="lg:hidden">
             <Card className="glass-card">
-              <CardHeader className="pb-2 pt-3 px-4">
+              <CardHeader className="pb-2 pt-3 px-3 sm:px-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm">Preview</CardTitle>
                   {brandColors && (
@@ -317,7 +317,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
                   )}
                 </div>
               </CardHeader>
-              <CardContent className="px-4 pb-4">
+              <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
                 <div 
                   className="rounded-lg border border-border overflow-hidden text-sm"
                   style={{ backgroundColor }}
@@ -354,9 +354,9 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating }: EmailBui
           </div>
         </div>
 
-        {/* Right Column - Live Preview (Desktop only) */}
+        {/* Right Column - Live Preview (lg+ only) */}
         {showPreview && (
-          <div className="hidden xl:block overflow-y-auto">
+          <div className="hidden lg:block overflow-y-auto">
             <Card className="glass-card h-full">
               <CardHeader className="pb-2 pt-3 px-4 flex-shrink-0">
                 <div className="flex items-center justify-between">
