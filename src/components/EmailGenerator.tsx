@@ -351,9 +351,14 @@ export function EmailGenerator() {
             size="sm" 
             onClick={() => handleOpenVisualEditor({
               subject: emailOptions.subjects?.[0] || "",
+              subjectResend: emailOptions.subjectsResend?.[0] || "",
+              preheader: emailOptions.preheaders?.[0] || "",
               content: emailOptions.content,
               cta: emailOptions.ctas?.[0],
               brandName: emailOptions.brandName,
+              subjectVariations: emailOptions.subjects,
+              subjectResendVariations: emailOptions.subjectsResend,
+              preheaderVariations: emailOptions.preheaders,
             })}
           >
             <Paintbrush className="h-4 w-4 mr-1" />
@@ -417,7 +422,7 @@ export function EmailGenerator() {
               <Button
                 onClick={handleAnalyzeSite}
                 disabled={isAnalyzing || !hasAnalysisCredits}
-                variant="secondary"
+                variant="default"
               >
                 {isAnalyzing ? (
                   <>

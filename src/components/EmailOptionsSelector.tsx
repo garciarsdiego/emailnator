@@ -25,9 +25,18 @@ export function EmailOptionsSelector({
 
   if (validOptions.length === 0) return null;
 
+  const currentIndex = selected ? validOptions.indexOf(selected) : -1;
+
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-medium text-muted-foreground">{label}</label>
+      <div className="flex items-center justify-between">
+        <label className="text-xs font-medium text-muted-foreground">{label}</label>
+        {validOptions.length > 1 && (
+          <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+            {currentIndex >= 0 ? currentIndex + 1 : 1}/{validOptions.length}
+          </span>
+        )}
+      </div>
       <Select value={selected || undefined} onValueChange={onSelect}>
         <SelectTrigger className="w-full text-left h-auto min-h-[40px] py-2">
           <SelectValue placeholder="Selecione...">

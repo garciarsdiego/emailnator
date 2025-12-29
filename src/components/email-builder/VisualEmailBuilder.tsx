@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, Eye, Code, Trash2, Save, Monitor, Smartphone, Star } from "lucide-react";
 import { toast } from "sonner";
 import { EmailBlock } from "@/types/emailBuilder";
@@ -17,10 +18,15 @@ import { cn } from "@/lib/utils";
 
 export interface EmailContent {
   subject?: string;
+  subjectResend?: string;
   preheader?: string;
   content?: string;
   cta?: string;
   brandName?: string;
+  // Variations for selection
+  subjectVariations?: string[];
+  subjectResendVariations?: string[];
+  preheaderVariations?: string[];
 }
 
 interface VisualEmailBuilderProps {
@@ -62,13 +68,20 @@ export function VisualEmailBuilder({
   const [previewMode, setPreviewMode] = useState<"edit" | "preview" | "html">("edit");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
   const [subject, setSubject] = useState(initialContent?.subject || "");
+  const [subjectResend, setSubjectResend] = useState(initialContent?.subjectResend || "");
   const [preheader, setPreheader] = useState(initialContent?.preheader || "");
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [templateName, setTemplateName] = useState("");
 
+  // Check if we have variations to show dropdowns
+  const hasSubjectVariations = (initialContent?.subjectVariations?.length || 0) > 1;
+  const hasSubjectResendVariations = (initialContent?.subjectResendVariations?.length || 0) > 1;
+  const hasPreheaderVariations = (initialContent?.preheaderVariations?.length || 0) > 1;
+
   useEffect(() => {
     if (initialContent) {
       setSubject(initialContent.subject || "");
+      setSubjectResend(initialContent.subjectResend || "");
       setPreheader(initialContent.preheader || "");
     }
   }, [initialContent]);
@@ -247,26 +260,107 @@ export function VisualEmailBuilder({
       {/* Metadata Fields */}
       {showMetadataFields && (
         <div className="p-3 border-b bg-muted/30 space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            {/* Subject (1st Send) */}
             <div className="space-y-1.5">
-              <Label htmlFor="subject" className="text-xs font-medium">Assunto</Label>
-              <Input
-                id="subject"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="Assunto do email..."
-                className="h-9"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="subject" className="text-xs font-medium">Assunto (1º Envio)</Label>
+                {hasSubjectVariations && (
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    {(initialContent?.subjectVariations?.indexOf(subject) ?? 0) + 1}/{initialContent?.subjectVariations?.length}
+                  </span>
+                )}
+              </div>
+              {hasSubjectVariations ? (
+                <Select value={subject} onValueChange={setSubject}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione um assunto..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {initialContent?.subjectVariations?.map((s, i) => (
+                      <SelectItem key={i} value={s} className="text-sm">
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="subject"
+                  value={subject}
+                  onChange={(e) => setSubject(e.target.value)}
+                  placeholder="Assunto do email..."
+                  className="h-9"
+                />
+              )}
             </div>
+
+            {/* Subject (Resend/A-B) */}
             <div className="space-y-1.5">
-              <Label htmlFor="preheader" className="text-xs font-medium">Pré-header</Label>
-              <Input
-                id="preheader"
-                value={preheader}
-                onChange={(e) => setPreheader(e.target.value)}
-                placeholder="Texto de pré-visualização..."
-                className="h-9"
-              />
+              <div className="flex items-center justify-between">
+                <Label htmlFor="subjectResend" className="text-xs font-medium">Assunto (Reenvio/A-B)</Label>
+                {hasSubjectResendVariations && (
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    {(initialContent?.subjectResendVariations?.indexOf(subjectResend) ?? 0) + 1}/{initialContent?.subjectResendVariations?.length}
+                  </span>
+                )}
+              </div>
+              {hasSubjectResendVariations ? (
+                <Select value={subjectResend} onValueChange={setSubjectResend}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione um assunto..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {initialContent?.subjectResendVariations?.map((s, i) => (
+                      <SelectItem key={i} value={s} className="text-sm">
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="subjectResend"
+                  value={subjectResend}
+                  onChange={(e) => setSubjectResend(e.target.value)}
+                  placeholder="Assunto alternativo..."
+                  className="h-9"
+                />
+              )}
+            </div>
+
+            {/* Preheader */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="preheader" className="text-xs font-medium">Pré-header</Label>
+                {hasPreheaderVariations && (
+                  <span className="text-[10px] font-medium text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                    {(initialContent?.preheaderVariations?.indexOf(preheader) ?? 0) + 1}/{initialContent?.preheaderVariations?.length}
+                  </span>
+                )}
+              </div>
+              {hasPreheaderVariations ? (
+                <Select value={preheader} onValueChange={setPreheader}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue placeholder="Selecione um pré-header..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {initialContent?.preheaderVariations?.map((p, i) => (
+                      <SelectItem key={i} value={p} className="text-sm">
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  id="preheader"
+                  value={preheader}
+                  onChange={(e) => setPreheader(e.target.value)}
+                  placeholder="Texto de pré-visualização..."
+                  className="h-9"
+                />
+              )}
             </div>
           </div>
         </div>
