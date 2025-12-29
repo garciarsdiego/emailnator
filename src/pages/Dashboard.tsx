@@ -243,7 +243,8 @@ export default function Dashboard() {
                   {campaigns.slice(0, 3).map((campaign) => (
                     <div 
                       key={campaign.id} 
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group"
+                      onClick={() => navigate(`/history?campaign=${campaign.id}`)}
                     >
                       <div className="flex items-center gap-3">
                         <div className="p-2 rounded-lg bg-primary/10">
@@ -256,9 +257,12 @@ export default function Dashboard() {
                           </p>
                         </div>
                       </div>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(campaign.created_at).toLocaleDateString("pt-BR")}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(campaign.created_at).toLocaleDateString("pt-BR")}
+                        </p>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
                     </div>
                   ))}
                 </div>
