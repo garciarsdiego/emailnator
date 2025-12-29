@@ -195,10 +195,11 @@ export function BlockEditor({ block, onUpdate }: BlockEditorProps) {
               <Label>Cor do fundo</Label>
               <Input
                 type="color"
-                value={content.buttonColor || "#6366f1"}
+                value={content.buttonColor || "#22c55e"}
                 onChange={(e) => onUpdate({ buttonColor: e.target.value })}
                 className="h-9 p-1"
               />
+              <p className="text-[10px] text-muted-foreground">Padrão: Verde</p>
             </div>
             <div className="space-y-2">
               <Label>Cor do texto</Label>
