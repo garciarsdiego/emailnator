@@ -117,7 +117,8 @@ export default function Dashboard() {
       value: subscription?.plan?.charAt(0).toUpperCase() + subscription?.plan?.slice(1) || "Free",
       icon: Zap,
       color: "text-amber-500",
-      clickable: false
+      clickable: true,
+      route: "/pricing"
     }
   ];
 
