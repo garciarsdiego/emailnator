@@ -100,19 +100,24 @@ export default function Dashboard() {
       label: "Emails Gerados",
       value: campaigns?.length || 0,
       icon: Mail,
-      color: "text-primary"
+      color: "text-primary",
+      clickable: true,
+      route: "/history"
     },
     {
       label: "Templates Salvos",
       value: templates?.length || 0,
       icon: FileText,
-      color: "text-blue-500"
+      color: "text-blue-500",
+      clickable: true,
+      route: "/email-builder"
     },
     {
       label: "Plano Atual",
       value: subscription?.plan?.charAt(0).toUpperCase() + subscription?.plan?.slice(1) || "Free",
       icon: Zap,
-      color: "text-amber-500"
+      color: "text-amber-500",
+      clickable: false
     }
   ];
 
@@ -142,11 +147,11 @@ export default function Dashboard() {
             <Card
               key={stat.label}
               className={`border-border/50 transition-all ${
-                stat.label === "Emails Gerados"
+                stat.clickable
                   ? "cursor-pointer hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 group"
                   : ""
               }`}
-              onClick={() => stat.label === "Emails Gerados" && navigate("/history")}
+              onClick={() => stat.clickable && stat.route && navigate(stat.route)}
             >
               <CardContent className="flex items-center gap-4 p-6">
                 <div className={`p-3 rounded-xl bg-muted/50 ${stat.color}`}>
@@ -156,7 +161,7 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                   <p className="text-2xl font-bold">{stat.value}</p>
                 </div>
-                {stat.label === "Emails Gerados" && (
+                {stat.clickable && (
                   <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
                 )}
               </CardContent>
