@@ -12,6 +12,7 @@ import { RichTextEditor } from "./RichTextEditor";
 import { VariablesHelper } from "./VariablesHelper";
 import { BrandManual } from "@/hooks/useBrandManual";
 import { replaceVariablesWithDummy } from "@/lib/emailVariables";
+import { sanitizeEmailHtml } from "@/lib/sanitizeHtml";
 
 interface BrandColors {
   primary?: string;
@@ -166,15 +167,9 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
 
   const isComplete = selectedSubject && selectedPreheader && selectedCta;
 
-  // Sanitize HTML for preview
+  // Sanitize HTML for preview using DOMPurify
   const sanitizeHtmlForPreview = (html: string) => {
-    return html
-      .replace(/<p>/g, `<p style="margin: 0 0 1em 0; color: ${bgTextColor};">`)
-      .replace(/<ul>/g, `<ul style="margin: 0.5em 0; padding-left: 1.5em; color: ${bgTextColor};">`)
-      .replace(/<ol>/g, `<ol style="margin: 0.5em 0; padding-left: 1.5em; color: ${bgTextColor};">`)
-      .replace(/<li>/g, `<li style="margin: 0.25em 0;">`)
-      .replace(/<strong>/g, `<strong style="font-weight: 600;">`)
-      .replace(/<a /g, `<a style="color: ${accentColor}; text-decoration: underline;" `);
+    return sanitizeEmailHtml(html, { textColor: bgTextColor, accentColor });
   };
 
   // Preview content component - uses dummy values for variables

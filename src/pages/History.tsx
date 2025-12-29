@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { NICHES, CAMPAIGN_TYPES } from "@/lib/constants";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 export default function History() {
   const { user, loading } = useAuth();
@@ -126,7 +127,7 @@ export default function History() {
                   )}
                   <div 
                     className="text-sm text-muted-foreground line-clamp-3 prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: campaign.content.substring(0, 300) + "..." }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(campaign.content.substring(0, 300) + "...") }}
                   />
                 </CardContent>
               </Card>

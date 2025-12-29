@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useState } from "react";
 import { toast } from "sonner";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 interface BrandColors {
   primary?: string;
@@ -199,7 +200,7 @@ export function EmailPreview({
               <div
                 className="prose prose-sm max-w-none"
                 style={{ color: bgTextColor }}
-                dangerouslySetInnerHTML={{ __html: content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(content) }}
               />
               <div className="mt-6 text-center">
                 <button 

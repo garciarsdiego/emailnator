@@ -4,6 +4,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";
 import { GripVertical, Trash2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 interface DraggableBlockProps {
   block: EmailBlock;
@@ -123,7 +124,7 @@ function BlockPreview({ block }: { block: EmailBlock }) {
             color: content.color,
           }}
           className="min-h-[24px] prose prose-sm max-w-none [&>*]:m-0 [&_ul]:pl-5 [&_ol]:pl-5"
-          dangerouslySetInnerHTML={{ __html: content.text || "<p>Clique para editar...</p>" }}
+          dangerouslySetInnerHTML={{ __html: sanitizeHtml(content.text || "<p>Clique para editar...</p>") }}
         />
       );
 
