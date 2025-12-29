@@ -251,6 +251,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
             variant="secondary"
             size="sm"
             onClick={() => setShowPreviewModal(true)}
+            className="btn-animated"
           >
             <Eye className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Preview</span>
@@ -412,16 +413,16 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
           </CardContent>
         </Card>
 
-        {/* Tips - Compact & Responsive */}
+        {/* Tips - Compact & Responsive with proper scroll */}
         {tips && tips.length > 0 && (
           <Card className="glass-card border-accent/30">
             <CardContent className="p-2.5 sm:p-3">
               <p className="text-xs font-medium text-accent mb-2">💡 Dicas</p>
-              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+              <ul className="tips-container grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
                 {tips.map((tip, index) => (
                   <li key={index} className="text-xs text-muted-foreground flex items-start gap-1.5">
                     <span className="text-accent shrink-0">•</span>
-                    <span className="line-clamp-2">{tip}</span>
+                    <span>{tip}</span>
                   </li>
                 ))}
               </ul>

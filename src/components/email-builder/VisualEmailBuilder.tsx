@@ -143,7 +143,7 @@ export function VisualEmailBuilder({
 
       case "button":
         return `<div style="text-align: center; padding: 20px 0;">
-          <a href="${content.buttonUrl || '#'}" class="button" style="background-color: ${content.buttonColor}; color: ${content.buttonTextColor}; padding: 12px 24px; border-radius: ${content.buttonRadius};">
+          <a href="${content.buttonUrl || '#'}" class="button" style="background-color: ${content.buttonColor || '#22c55e'}; color: ${content.buttonTextColor || '#ffffff'}; padding: 12px 24px; border-radius: ${content.buttonRadius || '8px'};">
             ${content.buttonText || 'Clique Aqui'}
           </a>
         </div>`;
@@ -388,7 +388,7 @@ export function VisualEmailBuilder({
               <Button
                 variant={previewDevice === "desktop" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-7 w-7 p-0"
+                className="h-7 w-7 p-0 btn-animated"
                 onClick={() => setPreviewDevice("desktop")}
               >
                 <Monitor className="h-4 w-4" />
