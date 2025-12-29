@@ -53,6 +53,7 @@ interface EmailRequest {
   siteUrl?: string;
   siteAnalysis?: SiteAnalysis;
   contentReference?: ContentReference;
+  customOffer?: string;
   language?: string;
 }
 
@@ -74,7 +75,7 @@ serve(async (req) => {
 
     console.log("Authenticated user:", user.id);
 
-    const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, contentReference } = await req.json() as EmailRequest;
+    const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, contentReference, customOffer } = await req.json() as EmailRequest;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -153,6 +154,8 @@ TOM DE COMUNICAÇÃO DA MARCA:
 
 OFERTAS ATIVAS (INCORPORE NO EMAIL):
 ${siteAnalysis.activeOffers?.map(o => `- ${o.type}: ${o.description}${o.code ? ` (Código: ${o.code})` : ""}`).join("\n") || "- Nenhuma oferta identificada"}
+${customOffer ? `\nOFERTA PERSONALIZADA (PRIORIDADE ALTA - USE ESTA):
+- ${customOffer}` : ""}
 
 PRODUTOS:
 - Categorias: ${siteAnalysis.products?.join(", ") || "Não identificados"}
@@ -162,6 +165,17 @@ PÚBLICO-ALVO DA MARCA: ${siteAnalysis.targetAudience || targetAudience}
 ${siteUrl ? `- URL: ${siteUrl}` : ""}
 
 IMPORTANTE: Use as expressões, tom e estilo de comunicação da marca para criar um email que pareça ter sido escrito pela própria empresa. Incorpore ofertas ativas quando relevante.
+`;
+    }
+
+    // Build custom offer context (when no site analysis)
+    let customOfferContext = "";
+    if (customOffer && !siteAnalysis) {
+      customOfferContext = `
+=== OFERTA PERSONALIZADA (USE NO EMAIL) ===
+${customOffer}
+
+IMPORTANTE: Incorpore esta oferta de forma natural e persuasiva no email.
 `;
     }
 
@@ -259,6 +273,7 @@ CAMPAIGN TYPE: ${campaignTypeDescriptions[campaignType] || campaignType}
 REQUESTED TONE: ${toneDescriptions[tone] || tone}
 TARGET AUDIENCE: ${targetAudience}
 ${brandContext}
+${customOfferContext}
 ${contentReferenceContext}
 
 Generate a complete email with 3 subject options (first send), 3 subject options (resend/A-B), 3 preheader options, and 3 CTA options. The email body should be unique but optimized. WRITE EVERYTHING IN ${detectedLanguage.toUpperCase()}.`;

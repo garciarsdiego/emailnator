@@ -72,6 +72,7 @@ export function EmailGenerator() {
   const [tone, setTone] = useState("casual");
   const [targetAudience, setTargetAudience] = useState("");
   const [siteUrl, setSiteUrl] = useState("");
+  const [customOffer, setCustomOffer] = useState("");
   const [contentReference, setContentReference] = useState<ContentReference>({ 
     type: "none", 
     url: "" 
@@ -253,6 +254,7 @@ export function EmailGenerator() {
           siteUrl: siteUrl || undefined,
           siteAnalysis: siteAnalysis || undefined,
           contentReference: contentReference.type !== "none" ? contentReference : undefined,
+          customOffer: customOffer || undefined,
         }),
       });
 
@@ -477,6 +479,22 @@ export function EmailGenerator() {
               value={contentReference} 
               onChange={setContentReference} 
             />
+
+            {/* Custom Offer Input */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                Oferta Personalizada
+                <span className="text-xs font-normal text-muted-foreground">(opcional)</span>
+              </label>
+              <Input
+                placeholder="Ex: 20% OFF no lançamento, Frete Grátis, Compre 2 Leve 3..."
+                value={customOffer}
+                onChange={(e) => setCustomOffer(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Adicione uma oferta que não está no site para campanhas futuras ou promoções especiais
+              </p>
+            </div>
 
             <Button
               onClick={handleGenerateEmail}

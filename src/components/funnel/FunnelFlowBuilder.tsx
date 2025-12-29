@@ -107,6 +107,11 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
 
       setSiteAnalysis(data);
       
+      // Auto-fill product description from site analysis
+      if (data.description && !productDescription) {
+        setProductDescription(data.description);
+      }
+      
       // Auto-fill tone if detected
       if (data.communication?.tone) {
         const toneMap: Record<string, string> = {
@@ -480,6 +485,9 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
                       <CardDescription className="text-xs">
                         {stage.emailType}
                       </CardDescription>
+                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+                        Ex: {stage.example}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
