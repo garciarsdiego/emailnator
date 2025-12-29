@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,12 +82,82 @@ export function EmailGenerator() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [visualEditorContent, setVisualEditorContent] = useState<EmailContent | null>(null);
+  
+  // Debounce timer for auto-analysis
+  const autoAnalyzeTimer = useRef<NodeJS.Timeout | null>(null);
+  const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
 
   const { hasEmailCredits, hasAnalysisCredits, consumeEmailCredit, consumeAnalysisCredit, totalEmails, totalAnalyses } =
     useUserCredits();
   const { createCampaign } = useCampaigns();
   const { brandManual } = useBrandManual();
   const { saveTemplate } = useEmailTemplates();
+
+  // Check if URL is valid for auto-analysis
+  const isValidUrl = useCallback((url: string) => {
+    try {
+      const parsed = new URL(url);
+      return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, []);
+
+  // Auto-analyze site when URL changes (with debounce)
+  useEffect(() => {
+    // Clear any pending timer
+    if (autoAnalyzeTimer.current) {
+      clearTimeout(autoAnalyzeTimer.current);
+      autoAnalyzeTimer.current = null;
+    }
+
+    // Don't auto-analyze if:
+    // - URL is empty or invalid
+    // - Already analyzing
+    // - No credits
+    // - Already have analysis for this URL
+    if (!siteUrl || !isValidUrl(siteUrl) || isAnalyzing || !hasAnalysisCredits) {
+      setPendingAutoAnalyze(false);
+      return;
+    }
+
+    // Show pending indicator
+    setPendingAutoAnalyze(true);
+
+    // Debounce: wait 1.5s after user stops typing
+    autoAnalyzeTimer.current = setTimeout(() => {
+      setPendingAutoAnalyze(false);
+      // Only analyze if we don't have analysis yet
+      if (!siteAnalysis) {
+        handleAnalyzeSite();
+      }
+    }, 1500);
+
+    return () => {
+      if (autoAnalyzeTimer.current) {
+        clearTimeout(autoAnalyzeTimer.current);
+      }
+    };
+  }, [siteUrl, hasAnalysisCredits]);
+
+  // Reset analysis when URL changes significantly
+  useEffect(() => {
+    if (siteAnalysis && siteUrl) {
+      // If URL changed, clear previous analysis
+      const currentDomain = (() => {
+        try {
+          return new URL(siteUrl).hostname;
+        } catch {
+          return "";
+        }
+      })();
+      
+      // This is a simplified check - in production you might want more sophisticated comparison
+      if (currentDomain && !siteUrl.includes(currentDomain.split(".")[0])) {
+        setSiteAnalysis(null);
+      }
+    }
+  }, [siteUrl]);
 
   // Apply brand manual settings if available
   const applyBrandSettings = () => {
@@ -407,29 +477,53 @@ export function EmailGenerator() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Search className="h-4 w-4 text-primary" />
-              Análise de Site (Opcional)
+              Análise de Site
+              {pendingAutoAnalyze && (
+                <span className="text-xs font-normal text-muted-foreground ml-2">
+                  (analisará automaticamente...)
+                </span>
+              )}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Cole a URL do seu e-commerce para personalizar o email automaticamente
+              Cole a URL do seu e-commerce - a análise iniciará automaticamente
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
-              <Input
-                placeholder="https://sua-loja.com.br"
-                value={siteUrl}
-                onChange={(e) => setSiteUrl(e.target.value)}
-                className="flex-1"
-              />
+              <div className="relative flex-1">
+                <Input
+                  placeholder="https://sua-loja.com.br"
+                  value={siteUrl}
+                  onChange={(e) => {
+                    setSiteUrl(e.target.value);
+                    // Clear previous analysis when URL changes
+                    if (siteAnalysis) {
+                      setSiteAnalysis(null);
+                    }
+                  }}
+                  className={pendingAutoAnalyze ? "pr-8" : ""}
+                />
+                {pendingAutoAnalyze && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+              </div>
               <Button
                 onClick={handleAnalyzeSite}
-                disabled={isAnalyzing || !hasAnalysisCredits}
-                variant="default"
+                disabled={isAnalyzing || !hasAnalysisCredits || !siteUrl}
+                variant={siteAnalysis ? "outline" : "default"}
+                size="default"
               >
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Analisando...
+                  </>
+                ) : siteAnalysis ? (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Reanalisar
                   </>
                 ) : (
                   <>

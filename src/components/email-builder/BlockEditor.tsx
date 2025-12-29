@@ -5,6 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
+import { AITextGenerator } from "./AITextGenerator";
 
 interface BlockEditorProps {
   block: EmailBlock;
@@ -42,6 +43,11 @@ export function BlockEditor({ block, onUpdate }: BlockEditorProps) {
       return (
         <div className="space-y-4">
           <h4 className="font-medium">Texto</h4>
+          <AITextGenerator
+            blockType="text"
+            currentText={content.text}
+            onGenerated={(text) => onUpdate({ text })}
+          />
           <div className="space-y-2">
             <Label>Conteúdo</Label>
             <Textarea
@@ -163,6 +169,11 @@ export function BlockEditor({ block, onUpdate }: BlockEditorProps) {
       return (
         <div className="space-y-4">
           <h4 className="font-medium">Botão</h4>
+          <AITextGenerator
+            blockType="button"
+            currentText={content.buttonText}
+            onGenerated={(text) => onUpdate({ buttonText: text })}
+          />
           <div className="space-y-2">
             <Label>Texto do botão</Label>
             <Input
