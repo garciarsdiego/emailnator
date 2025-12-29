@@ -18,6 +18,7 @@ import { useBrandManual } from "@/hooks/useBrandManual";
 import { useEmailTemplates, EmailTemplate } from "@/hooks/useEmailTemplates";
 import { toast } from "sonner";
 import { Loader2, Sparkles, Search, AlertCircle, Palette, ArrowLeft, Paintbrush } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface BrandColors {
   primary?: string;
@@ -173,11 +174,18 @@ export function EmailGenerator() {
 
     setIsAnalyzing(true);
     try {
+      // Get user session token for authenticated request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Você precisa estar logado para analisar sites.");
+        return;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/analyze-site`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ siteUrl }),
       });
@@ -224,11 +232,18 @@ export function EmailGenerator() {
 
     setIsGenerating(true);
     try {
+      // Get user session token for authenticated request
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Você precisa estar logado para gerar emails.");
+        return;
+      }
+
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
           niche,

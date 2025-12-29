@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { replaceVariablesWithDummy } from "@/lib/emailVariables";
+import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 interface TemplatesPanelProps {
   onUseTemplate?: (template: EmailTemplate) => void;
@@ -267,7 +268,7 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign, onEditVisual }: T
                   <div className="p-4 border rounded-lg bg-background">
                     <div
                       className="prose prose-sm max-w-none"
-                      dangerouslySetInnerHTML={{ __html: preview.content }}
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(preview.content) }}
                     />
                   </div>
                   {preview.cta && (

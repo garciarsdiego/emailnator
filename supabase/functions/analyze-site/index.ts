@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateAuth, createAuthenticatedClient } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,18 @@ serve(async (req) => {
   }
 
   try {
+    // Validate user authentication
+    const { user, error: authError } = await validateAuth(req);
+    if (authError || !user) {
+      console.log("Authentication failed:", authError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: " + (authError || "No user found") }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Authenticated user:", user.id);
+
     const { siteUrl } = await req.json();
     
     if (!siteUrl) {
@@ -30,7 +43,7 @@ serve(async (req) => {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    console.log("Starting analysis for:", formattedUrl);
+    console.log("Starting analysis for:", formattedUrl, "by user:", user.id);
 
     let siteContent = "";
     let brandingData: any = null;

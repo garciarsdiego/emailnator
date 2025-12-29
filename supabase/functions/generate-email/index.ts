@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,6 +62,18 @@ serve(async (req) => {
   }
 
   try {
+    // Validate user authentication
+    const { user, error: authError } = await validateAuth(req);
+    if (authError || !user) {
+      console.log("Authentication failed:", authError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: " + (authError || "No user found") }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Authenticated user:", user.id);
+
     const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, contentReference } = await req.json() as EmailRequest;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -250,7 +263,7 @@ ${contentReferenceContext}
 
 Generate a complete email with 3 subject options (first send), 3 subject options (resend/A-B), 3 preheader options, and 3 CTA options. The email body should be unique but optimized. WRITE EVERYTHING IN ${detectedLanguage.toUpperCase()}.`;
 
-    console.log("Generating email options for:", siteAnalysis?.brandName || niche, "in language:", detectedLanguage);
+    console.log("Generating email options for:", siteAnalysis?.brandName || niche, "in language:", detectedLanguage, "by user:", user.id);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",

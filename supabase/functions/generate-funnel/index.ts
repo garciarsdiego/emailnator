@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { validateAuth } from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -90,6 +91,18 @@ serve(async (req) => {
   }
 
   try {
+    // Validate user authentication
+    const { user, error: authError } = await validateAuth(req);
+    if (authError || !user) {
+      console.log("Authentication failed:", authError);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: " + (authError || "No user found") }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Authenticated user:", user.id);
+
     const { niche, tone, productDescription, siteUrl, siteAnalysis } = await req.json() as FunnelRequest;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -97,7 +110,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Generating funnel for:", niche, "with tone:", tone);
+    console.log("Generating funnel for:", niche, "with tone:", tone, "by user:", user.id);
 
     // Detect language from site analysis or default to Portuguese
     const detectedLanguage = siteAnalysis?.language || "pt-BR";
