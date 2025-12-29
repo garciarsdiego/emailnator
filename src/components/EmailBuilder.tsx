@@ -260,6 +260,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
             <Button 
               variant="outline" 
               size="sm" 
+              className="btn-animated"
               onClick={onRegenerate}
               disabled={isRegenerating}
             >
@@ -270,6 +271,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
           <Button 
             variant="outline" 
             size="sm" 
+            className="btn-animated"
             onClick={handleCopy}
             disabled={!isComplete}
           >
@@ -279,6 +281,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
           <Button 
             variant="default" 
             size="sm" 
+            className="btn-primary-animated"
             onClick={handleDownloadHTML}
             disabled={!isComplete}
           >
@@ -289,6 +292,7 @@ export function EmailBuilder({ options, onRegenerate, isRegenerating, onSaveTemp
             <Button 
               variant="outline" 
               size="sm" 
+              className="btn-animated"
               onClick={() => setShowSaveModal(true)}
               disabled={!isComplete}
             >

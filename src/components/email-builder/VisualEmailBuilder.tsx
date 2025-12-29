@@ -396,7 +396,7 @@ export function VisualEmailBuilder({
               <Button
                 variant={previewDevice === "mobile" ? "secondary" : "ghost"}
                 size="sm"
-                className="h-7 w-7 p-0"
+                className="h-7 w-7 p-0 btn-animated"
                 onClick={() => setPreviewDevice("mobile")}
               >
                 <Smartphone className="h-4 w-4" />
@@ -406,11 +406,11 @@ export function VisualEmailBuilder({
 
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={clearBlocks}>
+          <Button variant="outline" size="sm" className="h-7 text-xs btn-animated" onClick={clearBlocks}>
             <Trash2 className="h-3.5 w-3.5 mr-1" />
             Limpar
           </Button>
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={handleExportHTML}>
+          <Button variant="outline" size="sm" className="h-7 text-xs btn-animated" onClick={handleExportHTML}>
             <Download className="h-3.5 w-3.5 mr-1" />
             HTML
           </Button>
@@ -420,7 +420,7 @@ export function VisualEmailBuilder({
             </Button>
           )}
           {onSave && (
-            <Button size="sm" className="h-7 text-xs" onClick={handleSave}>
+            <Button size="sm" className="h-7 text-xs btn-primary-animated" onClick={handleSave}>
               <Save className="h-3.5 w-3.5 mr-1" />
               Salvar
             </Button>

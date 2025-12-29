@@ -421,6 +421,7 @@ export function EmailGenerator() {
           <Button 
             variant="outline" 
             size="sm" 
+            className="btn-animated"
             onClick={() => handleOpenVisualEditor({
               subject: emailOptions.subjects?.[0] || "",
               subjectResend: emailOptions.subjectsResend?.[0] || "",
