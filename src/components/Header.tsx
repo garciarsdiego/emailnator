@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
@@ -11,14 +12,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { LogOut, User, CreditCard, Gift, History, Mail, GitBranch, Sparkles } from "lucide-react";
+import { LogOut, User, CreditCard, Gift, History, Mail, GitBranch, Sparkles, Menu } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 
 export function Header() {
   const { user, signOut } = useAuth();
   const { profile } = useProfile();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -34,6 +41,12 @@ export function Header() {
         .slice(0, 2)
     : user?.email?.slice(0, 2).toUpperCase() ?? "U";
 
+  const navItems = [
+    { to: "/email-ai", icon: Sparkles, label: "Gerador IA" },
+    { to: "/email-builder", icon: Mail, label: "Editor Visual" },
+    { to: "/funnel", icon: GitBranch, label: "Fluxo de Funil" },
+  ];
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="container flex h-16 items-center justify-between">
@@ -45,33 +58,81 @@ export function Header() {
         </Link>
 
         {user && (
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4 md:gap-6">
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center gap-1">
-              <NavLink 
-                to="/email-ai" 
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
-                activeClassName="text-foreground bg-muted"
-              >
-                <Sparkles className="h-4 w-4" />
-                Gerador IA
-              </NavLink>
-              <NavLink 
-                to="/email-builder" 
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
-                activeClassName="text-foreground bg-muted"
-              >
-                <Mail className="h-4 w-4" />
-                Editor Visual
-              </NavLink>
-              <NavLink 
-                to="/funnel" 
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
-                activeClassName="text-foreground bg-muted"
-              >
-                <GitBranch className="h-4 w-4" />
-                Fluxo de Funil
-              </NavLink>
+              {navItems.map((item) => (
+                <NavLink 
+                  key={item.to}
+                  to={item.to} 
+                  className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                  activeClassName="text-foreground bg-muted"
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </NavLink>
+              ))}
             </nav>
+
+            {/* Mobile Menu */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon" className="h-9 w-9">
+                  <Menu className="h-5 w-5" />
+                  <span className="sr-only">Abrir menu</span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64">
+                <div className="flex items-center gap-2 mb-8">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-lg">
+                    E
+                  </div>
+                  <span className="text-xl font-bold">Emailnator</span>
+                </div>
+                <nav className="flex flex-col gap-2">
+                  {navItems.map((item) => (
+                    <NavLink 
+                      key={item.to}
+                      to={item.to} 
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                      activeClassName="text-foreground bg-muted"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {item.label}
+                    </NavLink>
+                  ))}
+                  <div className="my-2 border-t" />
+                  <NavLink 
+                    to="/dashboard" 
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                    activeClassName="text-foreground bg-muted"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <User className="h-4 w-4" />
+                    Dashboard
+                  </NavLink>
+                  <NavLink 
+                    to="/history" 
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                    activeClassName="text-foreground bg-muted"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <History className="h-4 w-4" />
+                    Histórico
+                  </NavLink>
+                  <NavLink 
+                    to="/pricing" 
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-muted/50"
+                    activeClassName="text-foreground bg-muted"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    Planos e Créditos
+                  </NavLink>
+                </nav>
+              </SheetContent>
+            </Sheet>
 
             <CreditsDisplay />
 

@@ -438,6 +438,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consume_analysis_credit: { Args: { p_user_id: string }; Returns: boolean }
+      consume_email_credit: { Args: { p_user_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

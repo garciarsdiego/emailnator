@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateAuth } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,14 +67,34 @@ serve(async (req) => {
     // Validate user authentication
     const { user, error: authError } = await validateAuth(req);
     if (authError || !user) {
-      console.log("Authentication failed:", authError);
+      console.log("Authentication failed");
       return new Response(
         JSON.stringify({ error: "Unauthorized: " + (authError || "No user found") }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Authenticated user:", user.id);
+    console.log("Request authenticated successfully");
+
+    // Create admin client for credit consumption
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Consume credit atomically BEFORE processing
+    const { data: creditConsumed, error: creditError } = await supabaseAdmin
+      .rpc("consume_email_credit", { p_user_id: user.id });
+
+    if (creditError || !creditConsumed) {
+      console.log("Credit consumption failed");
+      return new Response(
+        JSON.stringify({ error: "Créditos insuficientes. Adquira mais créditos para continuar." }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Credit consumed successfully");
 
     const { niche, campaignType, tone, targetAudience, siteUrl, siteAnalysis, contentReference, customOffer } = await req.json() as EmailRequest;
     
@@ -278,7 +299,7 @@ ${contentReferenceContext}
 
 Generate a complete email with 3 subject options (first send), 3 subject options (resend/A-B), 3 preheader options, and 3 CTA options. The email body should be unique but optimized. WRITE EVERYTHING IN ${detectedLanguage.toUpperCase()}.`;
 
-    console.log("Generating email options for:", siteAnalysis?.brandName || niche, "in language:", detectedLanguage, "by user:", user.id);
+    console.log("Generating email for niche:", niche, "language:", detectedLanguage);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -310,7 +331,7 @@ Generate a complete email with 3 subject options (first send), 3 subject options
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("AI gateway error:", response.status);
       throw new Error("Erro ao gerar email");
     }
 
@@ -325,7 +346,7 @@ Generate a complete email with 3 subject options (first send), 3 subject options
                         [null, generatedContent];
       emailData = JSON.parse(jsonMatch[1] || generatedContent);
     } catch (parseError) {
-      console.error("Error parsing AI response:", parseError);
+      console.error("Error parsing AI response");
       // Fallback: create basic structure
       emailData = {
         subjects: ["Confira nossa oferta especial! 🎁", "Você não pode perder isso 🚀", "Novidades esperando por você ✨"],
@@ -349,7 +370,7 @@ Generate a complete email with 3 subject options (first send), 3 subject options
       emailData.brandColors = siteAnalysis.branding?.colors;
     }
 
-    console.log("Email options generated successfully for:", siteAnalysis?.brandName || "generic");
+    console.log("Email generated successfully");
 
     return new Response(JSON.stringify(emailData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
