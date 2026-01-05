@@ -87,7 +87,7 @@ export function EmailGenerator() {
   const autoAnalyzeTimer = useRef<NodeJS.Timeout | null>(null);
   const [pendingAutoAnalyze, setPendingAutoAnalyze] = useState(false);
 
-  const { hasEmailCredits, hasAnalysisCredits, consumeEmailCredit, consumeAnalysisCredit, totalEmails, totalAnalyses } =
+  const { hasEmailCredits, hasAnalysisCredits, totalEmails, totalAnalyses, refreshCredits } =
     useUserCredits();
   const { createCampaign } = useCampaigns();
   const { brandManual } = useBrandManual();
@@ -271,7 +271,8 @@ export function EmailGenerator() {
       setNiche(analysis.niche);
       setTargetAudience(analysis.targetAudience);
       
-      await consumeAnalysisCredit.mutateAsync();
+      // Refresh credits from server (consumed server-side)
+      refreshCredits();
       
       toast.success("Site analisado com sucesso!");
     } catch (error) {
@@ -336,7 +337,8 @@ export function EmailGenerator() {
       const email = await response.json();
       setEmailOptions(email);
 
-      await consumeEmailCredit.mutateAsync();
+      // Refresh credits from server (consumed server-side)
+      refreshCredits();
       
       await createCampaign.mutateAsync({
         niche,

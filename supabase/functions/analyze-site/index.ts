@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateAuth, createAuthenticatedClient } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,14 +16,34 @@ serve(async (req) => {
     // Validate user authentication
     const { user, error: authError } = await validateAuth(req);
     if (authError || !user) {
-      console.log("Authentication failed:", authError);
+      console.log("Authentication failed");
       return new Response(
         JSON.stringify({ error: "Unauthorized: " + (authError || "No user found") }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Authenticated user:", user.id);
+    console.log("Request authenticated successfully");
+
+    // Create admin client for credit consumption
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Consume credit atomically BEFORE processing
+    const { data: creditConsumed, error: creditError } = await supabaseAdmin
+      .rpc("consume_analysis_credit", { p_user_id: user.id });
+
+    if (creditError || !creditConsumed) {
+      console.log("Credit consumption failed");
+      return new Response(
+        JSON.stringify({ error: "Créditos de análise insuficientes. Adquira mais créditos para continuar." }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("Credit consumed successfully");
 
     const { siteUrl } = await req.json();
     
@@ -43,14 +64,14 @@ serve(async (req) => {
       formattedUrl = `https://${formattedUrl}`;
     }
 
-    console.log("Starting analysis for:", formattedUrl, "by user:", user.id);
+    console.log("Starting analysis for URL");
 
     let siteContent = "";
     let brandingData: any = null;
 
     // Try Firecrawl first for better results
     if (FIRECRAWL_API_KEY) {
-      console.log("Using Firecrawl to scrape site...");
+      console.log("Using Firecrawl to scrape site");
       
       try {
         // First, scrape with branding to get visual identity
@@ -81,21 +102,19 @@ serve(async (req) => {
           }
           
           console.log("Got branding data:", brandingData ? "yes" : "no");
-          console.log("Got content length:", siteContent.length);
         } else {
-          const errorText = await brandingResponse.text();
-          console.error("Firecrawl error:", brandingResponse.status, errorText);
+          console.error("Firecrawl error:", brandingResponse.status);
         }
       } catch (firecrawlError) {
-        console.error("Firecrawl fetch error:", firecrawlError);
+        console.error("Firecrawl fetch error");
       }
     } else {
-      console.log("Firecrawl not configured, trying direct fetch...");
+      console.log("Firecrawl not configured, trying direct fetch");
     }
 
     // Fallback to direct fetch if Firecrawl didn't work
     if (!siteContent) {
-      console.log("Trying direct fetch...");
+      console.log("Trying direct fetch");
       try {
         const siteResponse = await fetch(formattedUrl, {
           headers: {
@@ -107,10 +126,10 @@ serve(async (req) => {
         if (siteResponse.ok) {
           siteContent = await siteResponse.text();
           siteContent = siteContent.substring(0, 25000);
-          console.log("Direct fetch successful, content length:", siteContent.length);
+          console.log("Direct fetch successful");
         }
       } catch (fetchError) {
-        console.log("Direct fetch failed:", fetchError);
+        console.log("Direct fetch failed");
       }
     }
 
@@ -229,7 +248,7 @@ ${siteContent ? `\n=== CONTEÚDO DO SITE ===\n${siteContent}` : "\n(Conteúdo n�
 
 Extraia o máximo de informações possível para personalizar campanhas de email marketing. USE os dados de branding extraídos quando disponíveis.`;
 
-    console.log("Sending to AI for analysis...");
+    console.log("Sending to AI for analysis");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -260,15 +279,14 @@ Extraia o máximo de informações possível para personalizar campanhas de emai
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      console.error("AI gateway error:", response.status);
       throw new Error("Erro ao analisar site");
     }
 
     const data = await response.json();
     const generatedContent = data.choices[0].message.content;
 
-    console.log("AI response received, parsing JSON...");
+    console.log("AI response received, parsing JSON");
 
     // Parse JSON from response
     let analysisData;
@@ -278,7 +296,7 @@ Extraia o máximo de informações possível para personalizar campanhas de emai
                         [null, generatedContent];
       analysisData = JSON.parse(jsonMatch[1] || generatedContent);
     } catch (parseError) {
-      console.error("Error parsing AI response:", parseError);
+      console.error("Error parsing AI response");
       // Fallback with branding data if available
       analysisData = {
         language: "pt-BR",
@@ -333,7 +351,7 @@ Extraia o máximo de informações possível para personalizar campanhas de emai
       }
     }
 
-    console.log("Analysis complete for:", formattedUrl, "- Language:", analysisData.language);
+    console.log("Analysis complete");
 
     return new Response(JSON.stringify(analysisData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

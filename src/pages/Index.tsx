@@ -159,7 +159,7 @@ export default function Index() {
             <span className="font-semibold">Emailnator</span>
           </div>
           <p className="text-sm text-muted-foreground">
-            © 2024 Emailnator. Todos os direitos reservados.
+            © {new Date().getFullYear()} Emailnator. Todos os direitos reservados.
           </p>
         </div>
       </footer>
