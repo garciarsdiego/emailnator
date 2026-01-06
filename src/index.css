@@ -168,28 +168,15 @@
     @apply hover:shadow-md hover:scale-[1.02];
   }
 
-  .btn-animated:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
-  }
-
   .btn-primary-animated {
     @apply btn-animated;
     @apply hover:shadow-[0_4px_14px_hsl(var(--primary)/0.4)];
-  }
-
-  .btn-primary-animated:focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
 
   /* Tips container with proper scrolling */
   .tips-container {
     @apply max-h-40 overflow-y-auto pb-2;
   }
-}
-
-/* Global focus-visible styles for accessibility */
-*:focus-visible {
-  @apply outline-2 outline-offset-2 outline-primary;
 }
 
 @keyframes float {

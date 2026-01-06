@@ -100,25 +100,19 @@ export default function Dashboard() {
       label: "Emails Gerados",
       value: campaigns?.length || 0,
       icon: Mail,
-      color: "text-primary",
-      clickable: true,
-      route: "/history"
+      color: "text-primary"
     },
     {
       label: "Templates Salvos",
       value: templates?.length || 0,
       icon: FileText,
-      color: "text-blue-500",
-      clickable: true,
-      route: "/email-builder"
+      color: "text-blue-500"
     },
     {
       label: "Plano Atual",
       value: subscription?.plan?.charAt(0).toUpperCase() + subscription?.plan?.slice(1) || "Free",
       icon: Zap,
-      color: "text-amber-500",
-      clickable: true,
-      route: "/pricing"
+      color: "text-amber-500"
     }
   ];
 
@@ -145,15 +139,7 @@ export default function Dashboard() {
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           {stats.map((stat) => (
-            <Card
-              key={stat.label}
-              className={`border-border/50 transition-all ${
-                stat.clickable
-                  ? "cursor-pointer hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 group"
-                  : ""
-              }`}
-              onClick={() => stat.clickable && stat.route && navigate(stat.route)}
-            >
+            <Card key={stat.label} className="border-border/50">
               <CardContent className="flex items-center gap-4 p-6">
                 <div className={`p-3 rounded-xl bg-muted/50 ${stat.color}`}>
                   <stat.icon className="h-6 w-6" />
@@ -162,9 +148,6 @@ export default function Dashboard() {
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                   <p className="text-2xl font-bold">{stat.value}</p>
                 </div>
-                {stat.clickable && (
-                  <ArrowRight className="h-4 w-4 text-muted-foreground ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
-                )}
               </CardContent>
             </Card>
           ))}

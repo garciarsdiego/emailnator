@@ -65,7 +65,7 @@ ${blockType === "header" ? "O texto deve ser um nome de marca ou título de camp
 
 Gere apenas o texto, sem explicações.`;
 
-    console.log("Generating block text:", textType, tone, blockType);
+    console.log("Generating block text:", { textType, tone, blockType });
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -97,7 +97,8 @@ Gere apenas o texto, sem explicações.`;
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      console.error("AI gateway error:", response.status);
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
       throw new Error("Erro ao gerar texto");
     }
 

@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateAuth } from "../_shared/auth.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,42 +94,14 @@ serve(async (req) => {
     // Validate user authentication
     const { user, error: authError } = await validateAuth(req);
     if (authError || !user) {
-      console.log("Authentication failed");
+      console.log("Authentication failed:", authError);
       return new Response(
         JSON.stringify({ error: "Unauthorized: " + (authError || "No user found") }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Request authenticated successfully");
-
-    // Create admin client for credit consumption
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
-    // Consume 5 email credits for funnel (5 emails)
-    let creditsConsumed = 0;
-    for (let i = 0; i < 5; i++) {
-      const { data: creditConsumed, error: creditError } = await supabaseAdmin
-        .rpc("consume_email_credit", { p_user_id: user.id });
-      
-      if (creditError || !creditConsumed) {
-        // Rollback is not possible, but at least we stop
-        console.log("Credit consumption failed at email", i + 1);
-        if (creditsConsumed === 0) {
-          return new Response(
-            JSON.stringify({ error: "Créditos insuficientes. Você precisa de 5 créditos para gerar um funil completo." }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-          );
-        }
-        break;
-      }
-      creditsConsumed++;
-    }
-
-    console.log("Credits consumed:", creditsConsumed);
+    console.log("Authenticated user:", user.id);
 
     const { niche, tone, productDescription, siteUrl, siteAnalysis } = await req.json() as FunnelRequest;
     
@@ -139,7 +110,7 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    console.log("Generating funnel for niche:", niche);
+    console.log("Generating funnel for:", niche, "with tone:", tone, "by user:", user.id);
 
     // Detect language from site analysis or default to Portuguese
     const detectedLanguage = siteAnalysis?.language || "pt-BR";
@@ -287,7 +258,8 @@ Gere os 5 emails completos do funil, cada um otimizado para sua etapa específic
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      console.error("AI gateway error:", response.status);
+      const errorText = await response.text();
+      console.error("AI gateway error:", response.status, errorText);
       throw new Error("Erro ao gerar funil");
     }
 
@@ -302,7 +274,7 @@ Gere os 5 emails completos do funil, cada um otimizado para sua etapa específic
                         [null, generatedContent];
       funnelData = JSON.parse(jsonMatch[1] || generatedContent);
     } catch (parseError) {
-      console.error("Error parsing AI response");
+      console.error("Error parsing AI response:", parseError);
       throw new Error("Erro ao processar resposta da IA");
     }
 
