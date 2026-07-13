@@ -1,197 +1,151 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CHECK-SUBSCRIPTION] ${step}${detailsStr}`);
-};
-
-// Product ID to plan mapping
-const PRODUCT_TO_PLAN: Record<string, string> = {
-  "prod_TfH04UvgnZuws9": "starter",
-  "prod_TfH1mpMYkhsVIh": "pro",
-};
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { requireUser } from "../_shared/auth.ts";
+import { preflight } from "../_shared/cors.ts";
+import { AppError } from "../_shared/errors.ts";
+import { errorResponse, jsonResponse, readJson, requestId } from "../_shared/http.ts";
+import { logInfo } from "../_shared/logger.ts";
+import { enforceRateLimit } from "../_shared/rate-limit.ts";
+import { stripeClient } from "../_shared/stripe-client.ts";
+import { activeSubscriptionStatus } from "../_shared/stripe-catalog.ts";
+import { subscriptionSnapshot, syncFreeAccount, syncSubscription } from "../_shared/subscriptions.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-
+  const optionsResponse = preflight(req);
+  if (optionsResponse) return optionsResponse;
+  const traceId = requestId(req);
   try {
-    logStep("Function started");
+    const auth = await requireUser(req);
+    await enforceRateLimit({
+      serviceClient: auth.serviceClient,
+      userId: auth.user.id,
+      action: "check_subscription",
+      maxRequests: 12,
+      windowSeconds: 300,
+    });
+    await readJson(req);
+    const [{ data: profile, error: profileError }, { data: billing, error: billingError }] = await Promise.all([
+      auth.serviceClient.from("profiles").select("plan, plan_source").eq("id", auth.user.id).single(),
+      auth.serviceClient.from("billing_customers")
+        .select("stripe_customer_id, stripe_subscription_id")
+        .eq("user_id", auth.user.id)
+        .maybeSingle(),
+    ]);
+    if (profileError || billingError) {
+      throw new AppError("SUBSCRIPTION_LOOKUP_FAILED", 500, "Unable to load subscription", false);
+    }
 
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
+    if (profile.plan_source === "manual") {
+      return jsonResponse(req, {
+        subscribed: profile.plan !== "free",
+        plan: profile.plan,
+        source: "manual",
+        subscription_end: null,
+        is_trialing: false,
+      });
+    }
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
+    let customerId = billing?.stripe_customer_id as string | null | undefined;
+    let stripe: Stripe | null = null;
+    let subscription: Stripe.Subscription | null = null;
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    // One-time safe migration path for v1 subscribers: the old checkout stored
+    // user_id on subscription metadata but did not persist the Stripe customer.
+    // Email alone is never sufficient; metadata must match the authenticated user.
+    if (!customerId && profile.plan_source === "legacy" && auth.user.email) {
+      stripe = stripeClient();
+      const customers = await stripe.customers.list({ email: auth.user.email, limit: 10 });
+      for (const customer of customers.data) {
+        const listed = await stripe.subscriptions.list({ customer: customer.id, status: "all", limit: 10 });
+        const matched = listed.data.find((entry: Stripe.Subscription) =>
+          entry.metadata?.user_id === auth.user.id && activeSubscriptionStatus(entry.status)
+        );
+        if (matched) {
+          customerId = customer.id;
+          subscription = matched;
+          break;
+        }
+      }
+    }
 
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-
-    if (customers.data.length === 0) {
-      logStep("No customer found");
-      return new Response(JSON.stringify({ 
+    if (!customerId) {
+      await syncFreeAccount({
+        serviceClient: auth.serviceClient,
+        userId: auth.user.id,
+        status: "inactive",
+        sourceEventKey: `check:${traceId}`,
+      });
+      return jsonResponse(req, {
         subscribed: false,
         plan: "free",
-      }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
+        source: "stripe",
+        subscription_end: null,
+        is_trialing: false,
       });
     }
 
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
-
-    const subscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "active",
-      limit: 1,
-    });
-
-    // Also check for trialing subscriptions
-    const trialingSubscriptions = await stripe.subscriptions.list({
-      customer: customerId,
-      status: "trialing",
-      limit: 1,
-    });
-
-    const allSubscriptions = [...subscriptions.data, ...trialingSubscriptions.data];
-    const hasActiveSub = allSubscriptions.length > 0;
-
-    let plan = "free";
-    let subscriptionEnd = null;
-    let isTrialing = false;
-
-    // First, check if user has a manually set plan in the database (enterprise, etc.)
-    const { data: profile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("plan")
-      .eq("id", user.id)
-      .single();
-
-    const dbPlan = profile?.plan || "free";
-    logStep("Database plan check", { dbPlan });
-
-    if (hasActiveSub) {
-      const subscription = allSubscriptions[0];
-      
-      // Safely handle dates that might be undefined or invalid
-      if (subscription.current_period_end && typeof subscription.current_period_end === 'number') {
-        subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+    stripe ??= stripeClient();
+    const subscriptionId = billing?.stripe_subscription_id as string | null | undefined;
+    if (!subscription && subscriptionId) {
+      try {
+        const retrieved = await stripe.subscriptions.retrieve(subscriptionId);
+        if (!('deleted' in retrieved)) subscription = retrieved as Stripe.Subscription;
+      } catch (error) {
+        const status = typeof error === "object" && error && "statusCode" in error
+          ? Number((error as { statusCode?: unknown }).statusCode)
+          : 0;
+        if (status !== 404) throw error;
       }
-      
-      isTrialing = subscription.status === "trialing";
-      
-      const productId = subscription.items.data[0]?.price?.product as string;
-      const stripePlan = PRODUCT_TO_PLAN[productId] || "free";
-      
-      // Use the higher tier plan between Stripe and database
-      // Priority: enterprise > pro > starter > free
-      const planPriority: Record<string, number> = {
-        "free": 0,
-        "starter": 1,
-        "pro": 2,
-        "enterprise": 3,
-      };
-      
-      plan = planPriority[dbPlan] > planPriority[stripePlan] ? dbPlan : stripePlan;
-      
-      logStep("Active subscription found", { 
-        subscriptionId: subscription.id, 
-        stripePlan,
-        dbPlan,
-        finalPlan: plan,
-        isTrialing,
-        endDate: subscriptionEnd,
-      });
-
-      // Only update profile if Stripe plan is higher than current
-      if (planPriority[stripePlan] > planPriority[dbPlan]) {
-        const planStartedAt = subscription.start_date 
-          ? new Date(subscription.start_date * 1000).toISOString() 
-          : new Date().toISOString();
-        
-        const trialEndsAt = isTrialing && subscription.trial_end 
-          ? new Date(subscription.trial_end * 1000).toISOString() 
-          : null;
-
-        const { error: updateError } = await supabaseClient
-          .from("profiles")
-          .update({ 
-            plan: stripePlan as "free" | "starter" | "pro" | "enterprise",
-            plan_started_at: planStartedAt,
-            trial_ends_at: trialEndsAt,
-          })
-          .eq("id", user.id);
-
-        if (updateError) {
-          logStep("Error updating profile", { error: updateError.message });
-        }
-      }
-
-      // Update credits based on plan
-      const creditsConfig: Record<string, { emails: number; analyses: number }> = {
-        starter: { emails: 50, analyses: 10 },
-        pro: { emails: 200, analyses: 50 },
-        enterprise: { emails: 1000000, analyses: 1000000 },
-      };
-
-      const credits = creditsConfig[plan];
-      if (credits) {
-        const { error: creditsError } = await supabaseClient
-          .from("user_credits")
-          .update({
-            emails_monthly_limit: credits.emails,
-            analyses_monthly_limit: credits.analyses,
-            emails_remaining: credits.emails,
-            analyses_remaining: credits.analyses,
-          })
-          .eq("user_id", user.id);
-
-        if (creditsError) {
-          logStep("Error updating credits", { error: creditsError.message });
-        }
-      }
-    } else {
-      logStep("No active Stripe subscription, using database plan");
-      plan = dbPlan;
     }
 
-    return new Response(JSON.stringify({
-      subscribed: hasActiveSub,
-      plan,
-      subscription_end: subscriptionEnd,
-      is_trialing: isTrialing,
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    if (!subscription) {
+      const listed = await stripe.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+      subscription = listed.data.find((entry: Stripe.Subscription) => activeSubscriptionStatus(entry.status))
+        ?? listed.data[0]
+        ?? null;
+    }
+
+    if (!subscription || !activeSubscriptionStatus(subscription.status)) {
+      await syncFreeAccount({
+        serviceClient: auth.serviceClient,
+        userId: auth.user.id,
+        customerId,
+        status: subscription?.status ?? "inactive",
+        sourceEventKey: `check:${traceId}`,
+      });
+      return jsonResponse(req, {
+        subscribed: false,
+        plan: "free",
+        source: "stripe",
+        subscription_end: null,
+        is_trialing: false,
+      });
+    }
+
+    await syncSubscription({
+      serviceClient: auth.serviceClient,
+      userId: auth.user.id,
+      subscription,
+      resetCycle: profile.plan_source === "legacy",
+      sourceEventKey: `check:${traceId}`,
+    });
+    const snapshot = subscriptionSnapshot(subscription);
+    logInfo("subscription_checked", {
+      requestId: traceId,
+      userId: auth.user.id,
+      subscriptionId: snapshot.subscriptionId,
+      status: snapshot.status,
+      plan: snapshot.plan,
+    });
+    return jsonResponse(req, {
+      subscribed: activeSubscriptionStatus(snapshot.status),
+      plan: snapshot.plan,
+      source: "stripe",
+      subscription_end: snapshot.currentPeriodEnd,
+      is_trialing: snapshot.status === "trialing",
+      cancel_at_period_end: snapshot.cancelAtPeriodEnd,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return errorResponse(req, error, traceId);
   }
 });

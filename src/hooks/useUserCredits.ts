@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -36,53 +36,17 @@ export function useUserCredits() {
     enabled: !!user,
   });
 
-  const consumeEmailCredit = useMutation({
-    mutationFn: async () => {
-      if (!user || !credits) throw new Error("No credits available");
+  const refreshCredits = () =>
+    queryClient.invalidateQueries({ queryKey: ["user-credits", user?.id] });
 
-      // First use extra credits, then monthly credits
-      const useExtra = credits.extra_emails > 0;
-      
-      const { error } = await supabase
-        .from("user_credits")
-        .update(
-          useExtra
-            ? { extra_emails: credits.extra_emails - 1 }
-            : { emails_remaining: credits.emails_remaining - 1 }
-        )
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-credits", user?.id] });
-    },
-  });
-
-  const consumeAnalysisCredit = useMutation({
-    mutationFn: async () => {
-      if (!user || !credits) throw new Error("No credits available");
-
-      const useExtra = credits.extra_analyses > 0;
-      
-      const { error } = await supabase
-        .from("user_credits")
-        .update(
-          useExtra
-            ? { extra_analyses: credits.extra_analyses - 1 }
-            : { analyses_remaining: credits.analyses_remaining - 1 }
-        )
-        .eq("user_id", user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["user-credits", user?.id] });
-    },
-  });
-
-  const totalEmails = (credits?.emails_remaining ?? 0) + (credits?.extra_emails ?? 0);
-  const totalAnalyses = (credits?.analyses_remaining ?? 0) + (credits?.extra_analyses ?? 0);
+  const totalEmails = Math.max(
+    0,
+    (credits?.emails_remaining ?? 0) + (credits?.extra_emails ?? 0),
+  );
+  const totalAnalyses = Math.max(
+    0,
+    (credits?.analyses_remaining ?? 0) + (credits?.extra_analyses ?? 0),
+  );
 
   return {
     credits,
@@ -92,7 +56,6 @@ export function useUserCredits() {
     totalAnalyses,
     hasEmailCredits: totalEmails > 0,
     hasAnalysisCredits: totalAnalyses > 0,
-    consumeEmailCredit,
-    consumeAnalysisCredit,
+    refreshCredits,
   };
 }

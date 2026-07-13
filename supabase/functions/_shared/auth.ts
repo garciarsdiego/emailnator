@@ -1,82 +1,70 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import {
+  createClient,
+  type SupabaseClient,
+  type User,
+} from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { AppError } from "./errors.ts";
 
-export interface AuthResult {
-  user: {
-    id: string;
-    email?: string;
-  } | null;
-  error: string | null;
+export interface AuthContext {
+  user: User;
+  token: string;
+  userClient: SupabaseClient;
+  serviceClient: SupabaseClient;
 }
 
-/**
- * Validates user authentication from the Authorization header.
- * Returns the authenticated user or an error.
- */
-export async function validateAuth(req: Request): Promise<AuthResult> {
-  const authHeader = req.headers.get("Authorization");
-  
-  if (!authHeader) {
-    return { user: null, error: "No authorization header provided" };
+function requiredEnv(name: string): string {
+  const value = Deno.env.get(name)?.trim();
+  if (!value) {
+    throw new AppError("SERVER_MISCONFIGURED", 500, `${name} is not configured`, false);
   }
-
-  const token = authHeader.replace("Bearer ", "");
-  
-  // If token is the anon key, reject it - we need a real user token
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  if (token === anonKey) {
-    return { user: null, error: "User authentication required" };
-  }
-
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  
-  const supabaseClient = createClient(supabaseUrl, anonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  });
-
-  try {
-    const { data: { user }, error } = await supabaseClient.auth.getUser(token);
-    
-    if (error) {
-      console.error("Auth validation error:", error.message);
-      return { user: null, error: "Invalid or expired token" };
-    }
-
-    if (!user) {
-      return { user: null, error: "User not found" };
-    }
-
-    return { 
-      user: { 
-        id: user.id, 
-        email: user.email 
-      }, 
-      error: null 
-    };
-  } catch (err) {
-    console.error("Auth validation exception:", err);
-    return { user: null, error: "Authentication failed" };
-  }
+  return value;
 }
 
-/**
- * Creates a Supabase client authenticated as the user.
- */
-export function createAuthenticatedClient(token: string) {
-  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
-  
-  return createClient(supabaseUrl, anonKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
+export function createServiceClient(): SupabaseClient {
+  return createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
     },
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+  );
+}
+
+function createUserClient(token: string): SupabaseClient {
+  return createClient(
+    requiredEnv("SUPABASE_URL"),
+    requiredEnv("SUPABASE_ANON_KEY"),
+    {
+      auth: { autoRefreshToken: false, persistSession: false },
+      global: { headers: { Authorization: `Bearer ${token}` } },
     },
-  });
+  );
+}
+
+function bearerToken(req: Request): string {
+  const header = req.headers.get("authorization")?.trim();
+  const match = header?.match(/^Bearer\s+(.+)$/i);
+  if (!match?.[1]) {
+    throw new AppError("AUTHENTICATION_REQUIRED", 401, "A user access token is required");
+  }
+
+  const token = match[1].trim();
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY")?.trim();
+  if (!token || token === anonKey) {
+    throw new AppError("AUTHENTICATION_REQUIRED", 401, "A user access token is required");
+  }
+  return token;
+}
+
+export async function requireUser(req: Request): Promise<AuthContext> {
+  const token = bearerToken(req);
+  const userClient = createUserClient(token);
+  const serviceClient = createServiceClient();
+
+  const { data, error } = await userClient.auth.getUser(token);
+  if (error || !data.user) {
+    throw new AppError("INVALID_ACCESS_TOKEN", 401, "The access token is invalid or expired");
+  }
+
+  return { user: data.user, token, userClient, serviceClient };
 }

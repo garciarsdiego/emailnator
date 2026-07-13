@@ -1,45 +1,12 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
-import EmailAI from "./pages/EmailAI";
-import History from "./pages/History";
-import Referrals from "./pages/Referrals";
-import Pricing from "./pages/Pricing";
-import EmailBuilder from "./pages/EmailBuilder";
-import FunnelBuilder from "./pages/FunnelBuilder";
-import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
+import { AppProviders } from "@/app/providers/AppProviders";
+import { AppRouter } from "@/app/router/AppRouter";
+import { SkipLink } from "@/components/v2/SkipLink";
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/email-ai" element={<EmailAI />} />
-            <Route path="/history" element={<History />} />
-            <Route path="/referrals" element={<Referrals />} />
-            <Route path="/pricing" element={<Pricing />} />
-            <Route path="/email-builder" element={<EmailBuilder />} />
-            <Route path="/funnel" element={<FunnelBuilder />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
+  <AppProviders>
+    <SkipLink />
+    <AppRouter />
+  </AppProviders>
 );
 
 export default App;

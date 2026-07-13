@@ -1,71 +1,44 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CUSTOMER-PORTAL] ${step}${detailsStr}`);
-};
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import { requireUser } from "../_shared/auth.ts";
+import { appOrigin, preflight } from "../_shared/cors.ts";
+import { AppError } from "../_shared/errors.ts";
+import { errorResponse, jsonResponse, readJson, requestId } from "../_shared/http.ts";
+import { logInfo } from "../_shared/logger.ts";
+import { enforceRateLimit } from "../_shared/rate-limit.ts";
+import { stripeClient } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
+  const optionsResponse = preflight(req);
+  if (optionsResponse) return optionsResponse;
+  const traceId = requestId(req);
   try {
-    logStep("Function started");
-
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
-    if (userError) throw new Error(`Authentication error: ${userError.message}`);
-    const user = userData.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    
-    if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+    const auth = await requireUser(req);
+    await enforceRateLimit({
+      serviceClient: auth.serviceClient,
+      userId: auth.user.id,
+      action: "customer_portal",
+      maxRequests: 10,
+      windowSeconds: 600,
+    });
+    await readJson(req);
+    const { data, error } = await auth.serviceClient
+      .from("billing_customers")
+      .select("stripe_customer_id")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+    if (error) throw new AppError("BILLING_LOOKUP_FAILED", 500, "Unable to load billing account", false);
+    const customerId = data?.stripe_customer_id as string | null | undefined;
+    if (!customerId) {
+      throw new AppError("STRIPE_CUSTOMER_NOT_FOUND", 404, "Nenhuma conta de cobrança foi encontrada");
     }
-    
-    const customerId = customers.data[0].id;
-    logStep("Found Stripe customer", { customerId });
 
-    const origin = req.headers.get("origin") || "http://localhost:5173";
-    const portalSession = await stripe.billingPortal.sessions.create({
+    const session = await stripeClient().billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/dashboard`,
+      return_url: `${appOrigin(req)}/pricing`,
     });
-    logStep("Customer portal session created", { sessionId: portalSession.id });
-
-    return new Response(JSON.stringify({ url: portalSession.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    logInfo("customer_portal_created", { requestId: traceId, userId: auth.user.id, sessionId: session.id });
+    return jsonResponse(req, { url: session.url });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return errorResponse(req, error, traceId);
   }
 });

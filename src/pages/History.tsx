@@ -1,6 +1,4 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,17 +10,14 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { NICHES, CAMPAIGN_TYPES } from "@/lib/constants";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
+import { useEmailDocuments } from "@/features/email-editor/hooks/useEmailDocuments";
+import { DocumentHistorySection } from "@/features/email-editor/ui/DocumentHistorySection";
+import { safeExternalHttpUrl } from "@/shared/security/urls";
 
 export default function History() {
-  const { user, loading } = useAuth();
   const navigate = useNavigate();
   const { campaigns, isLoading, deleteCampaign } = useCampaigns();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
-    }
-  }, [user, loading, navigate]);
+  const { documents, isLoading: documentsLoading, remove: removeDocument } = useEmailDocuments();
 
   const handleDelete = async (id: string) => {
     try {
@@ -33,13 +28,22 @@ export default function History() {
     }
   };
 
+  const handleDeleteDocument = async (id: string) => {
+    try {
+      await removeDocument.mutateAsync(id);
+      toast.success("Documento excluído");
+    } catch {
+      toast.error("Erro ao excluir documento");
+    }
+  };
+
   const getNicheLabel = (value: string) => 
     NICHES.find(n => n.value === value)?.label || value;
 
   const getCampaignTypeLabel = (value: string) => 
     CAMPAIGN_TYPES.find(t => t.value === value)?.label || value;
 
-  if (loading || isLoading) {
+  if (isLoading || documentsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -47,19 +51,16 @@ export default function History() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-8">
-        <div className="mb-8 flex items-center justify-between">
+      <main id="main-content" tabIndex={-1} className="container pb-24 pt-12">
+        <div className="flex items-end justify-between gap-6 border-b border-foreground/20 pb-9">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Histórico</h1>
-            <p className="text-muted-foreground mt-1">
-              Veja todas as campanhas de email que você criou
+            <p className="eyebrow">Arquivo de trabalho</p>
+            <h1 className="mt-4 text-5xl text-foreground sm:text-6xl">Histórico</h1>
+            <p className="mt-3 text-muted-foreground">
+              Continue documentos editáveis ou consulte gerações anteriores.
             </p>
           </div>
           <Button onClick={() => navigate("/dashboard")}>
@@ -68,6 +69,17 @@ export default function History() {
           </Button>
         </div>
 
+        <DocumentHistorySection
+          documents={documents}
+          onEdit={(id) => navigate(`/email-builder?document=${encodeURIComponent(id)}`)}
+          onDelete={(id) => void handleDeleteDocument(id)}
+        />
+
+        <section className="mt-16" aria-labelledby="campaign-history-title">
+        <div className="mb-5 border-b border-foreground/20 pb-4">
+          <p className="eyebrow">Originais da IA</p>
+          <h2 id="campaign-history-title" className="mt-2 text-3xl">Campanhas geradas</h2>
+        </div>
         {campaigns.length === 0 ? (
           <Card className="glass-card text-center py-12">
             <CardContent>
@@ -112,11 +124,11 @@ export default function History() {
                       </Badge>
                     )}
                   </div>
-                  {campaign.site_url && (
+                  {safeExternalHttpUrl(campaign.site_url) && (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <ExternalLink className="h-4 w-4" />
                       <a 
-                        href={campaign.site_url} 
+                        href={safeExternalHttpUrl(campaign.site_url) ?? undefined}
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="hover:text-foreground transition-colors"
@@ -134,6 +146,7 @@ export default function History() {
             ))}
           </div>
         )}
+        </section>
       </main>
     </div>
   );

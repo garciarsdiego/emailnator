@@ -23,26 +23,3 @@ export function sanitizeHtml(html: string): string {
     FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
   });
 }
-
-/**
- * Sanitizes HTML and applies email-safe inline styling transformations.
- * Use this for email preview content.
- */
-export function sanitizeEmailHtml(html: string, styleOptions?: {
-  textColor?: string;
-  accentColor?: string;
-}): string {
-  const sanitized = sanitizeHtml(html);
-  
-  if (!styleOptions) return sanitized;
-  
-  const { textColor = '#333333', accentColor = '#6366f1' } = styleOptions;
-  
-  return sanitized
-    .replace(/<p>/g, `<p style="margin: 0 0 1em 0; color: ${textColor};">`)
-    .replace(/<ul>/g, `<ul style="margin: 0.5em 0; padding-left: 1.5em; color: ${textColor};">`)
-    .replace(/<ol>/g, `<ol style="margin: 0.5em 0; padding-left: 1.5em; color: ${textColor};">`)
-    .replace(/<li>/g, `<li style="margin: 0.25em 0;">`)
-    .replace(/<strong>/g, `<strong style="font-weight: 600;">`)
-    .replace(/<a /g, `<a style="color: ${accentColor}; text-decoration: underline;" `);
-}

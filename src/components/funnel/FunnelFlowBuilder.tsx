@@ -1,293 +1,30 @@
-import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Loader2, Lock, Mail, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { FUNNEL_STAGES, SequenceEmail } from "@/types/emailSequence";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useFunnelWorkflow } from "@/features/funnels/hooks/useFunnelWorkflow";
+import { FunnelSetupCard } from "@/features/funnels/ui/FunnelSetupCard";
+import { FunnelStageCard } from "@/features/funnels/ui/FunnelStageCard";
+import { FUNNEL_STAGES } from "@/types/emailSequence";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { 
-  ArrowRight, 
-  Clock, 
-  Mail, 
-  Sparkles, 
-  Lock, 
-  ChevronDown, 
-  ChevronUp,
-  Loader2,
-  Wand2,
-  Globe,
-  Search,
-  CheckCircle2,
-  AlertCircle
-} from "lucide-react";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { NICHES, TONES } from "@/lib/constants";
-import { cn } from "@/lib/utils";
-
-interface SiteAnalysis {
-  language?: string;
-  brandName?: string;
-  description?: string;
-  slogan?: string;
-  products?: string[];
-  branding?: {
-    colors?: {
-      primary?: string;
-      secondary?: string;
-      accent?: string;
-      background?: string;
-    };
-    fonts?: {
-      heading?: string;
-      body?: string;
-    };
-    visualStyle?: string;
-  };
-  communication?: {
-    tone?: string;
-    copyStyle?: string;
-    keyPhrases?: string[];
-  };
-  activeOffers?: Array<{
-    type?: string;
-    description?: string;
-    code?: string;
-  }>;
-  priceRange?: string;
-  targetAudience?: string;
-}
+import { Card, CardContent } from "@/components/ui/card";
 
 interface FunnelFlowBuilderProps {
-  onSave?: (sequence: { name: string; emails: Partial<SequenceEmail>[] }) => void;
+  onSaved?: (sequenceId: string) => void;
 }
 
-export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
+export function FunnelFlowBuilder({ onSaved }: FunnelFlowBuilderProps) {
   const { subscription } = useAuth();
+  const workflow = useFunnelWorkflow(onSaved);
   const isPremium = subscription.plan === "pro" || subscription.plan === "enterprise";
-
-  const [sequenceName, setSequenceName] = useState("");
-  const [niche, setNiche] = useState("");
-  const [tone, setTone] = useState("");
-  const [productDescription, setProductDescription] = useState("");
-  const [siteUrl, setSiteUrl] = useState("");
-  const [siteAnalysis, setSiteAnalysis] = useState<SiteAnalysis | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [emails, setEmails] = useState<Partial<SequenceEmail>[]>(
-    FUNNEL_STAGES.map((stage) => ({
-      position: stage.id,
-      name: stage.name,
-      subject: "",
-      preheader: "",
-      content: "",
-      delay_days: stage.delay,
-      trigger_type: "time_delay" as const,
-    }))
-  );
-  const [expandedEmail, setExpandedEmail] = useState<number | null>(null);
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generatingIndex, setGeneratingIndex] = useState<number | null>(null);
-
-  const handleAnalyzeSite = async () => {
-    if (!siteUrl) {
-      toast.error("Digite a URL do site");
-      return;
-    }
-
-    setIsAnalyzing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("analyze-site", {
-        body: { siteUrl },
-      });
-
-      if (error) throw error;
-
-      setSiteAnalysis(data);
-      
-      // Auto-fill product description from site analysis
-      if (data.description && !productDescription) {
-        setProductDescription(data.description);
-      }
-      
-      // Auto-fill tone if detected
-      if (data.communication?.tone) {
-        const toneMap: Record<string, string> = {
-          "profissional": "formal",
-          "amigável": "casual",
-          "casual": "casual",
-          "sofisticado": "luxury",
-          "premium": "luxury",
-          "divertido": "playful",
-          "inspirador": "emotional",
-        };
-        const detectedTone = Object.entries(toneMap).find(([key]) => 
-          data.communication.tone.toLowerCase().includes(key)
-        );
-        if (detectedTone) setTone(detectedTone[1]);
-      }
-
-      toast.success("Site analisado com sucesso!");
-    } catch (error: any) {
-      console.error("Error analyzing site:", error);
-      toast.error("Erro ao analisar site: " + error.message);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const handleGenerateAll = async () => {
-    if (!niche || !tone) {
-      toast.error("Preencha o nicho e tom");
-      return;
-    }
-
-    if (!productDescription && !siteAnalysis) {
-      toast.error("Descreva o produto ou analise um site");
-      return;
-    }
-
-    setIsGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-funnel", {
-        body: {
-          niche,
-          tone,
-          productDescription: productDescription || siteAnalysis?.description || "",
-          siteUrl,
-          siteAnalysis,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data.emails && Array.isArray(data.emails)) {
-        const generatedEmails = data.emails.map((email: any, index: number) => ({
-          position: email.position || index + 1,
-          name: email.name || FUNNEL_STAGES[index]?.name || `Email ${index + 1}`,
-          subject: email.subject || "",
-          preheader: email.preheader || "",
-          content: email.content || "",
-          delay_days: email.delay_days ?? FUNNEL_STAGES[index]?.delay ?? index * 2,
-          trigger_type: "time_delay" as const,
-        }));
-
-        setEmails(generatedEmails);
-        
-        if (data.tips && data.tips.length > 0) {
-          toast.success(
-            <div className="space-y-1">
-              <p className="font-medium">Funil gerado com sucesso!</p>
-              <p className="text-xs text-muted-foreground">{data.tips[0]}</p>
-            </div>
-          );
-        } else {
-          toast.success("Funil completo gerado com sucesso!");
-        }
-      }
-    } catch (error: any) {
-      console.error("Error generating funnel:", error);
-      toast.error("Erro ao gerar funil: " + error.message);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  const handleGenerateSingle = async (index: number) => {
-    if (!niche || !tone) {
-      toast.error("Preencha o nicho e tom primeiro");
-      return;
-    }
-
-    const stage = FUNNEL_STAGES[index];
-    setGeneratingIndex(index);
-
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-email", {
-        body: {
-          niche,
-          campaignType: getFunnelCampaignType(stage.id),
-          tone,
-          targetAudience: productDescription || siteAnalysis?.description || "",
-          siteAnalysis,
-          additionalContext: `Este é o email ${stage.id} de 5 em um fluxo de funil. Etapa: ${stage.name}. Objetivo: ${stage.description}. Tipo de email: ${stage.emailType}.`,
-        },
-      });
-
-      if (error) throw error;
-
-      // Handle the response - use first subject option if available
-      const subject = data.subjects?.[0] || data.subject || "";
-      const preheader = data.preheaders?.[0] || data.preheader || "";
-      const content = data.content || "";
-
-      setEmails((prev) => {
-        const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          subject,
-          preheader,
-          content,
-        };
-        return updated;
-      });
-
-      toast.success(`Email "${stage.name}" gerado!`);
-    } catch (error: any) {
-      toast.error("Erro ao gerar email: " + error.message);
-    } finally {
-      setGeneratingIndex(null);
-    }
-  };
-
-  const getFunnelCampaignType = (stageId: number): string => {
-    const types: Record<number, string> = {
-      1: "welcome",
-      2: "newsletter",
-      3: "feedback",
-      4: "promotional",
-      5: "promotional",
-    };
-    return types[stageId] || "newsletter";
-  };
-
-  const updateEmail = (index: number, field: string, value: string | number) => {
-    setEmails((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  };
-
-  const handleSave = () => {
-    if (!sequenceName) {
-      toast.error("Digite um nome para o fluxo");
-      return;
-    }
-    if (emails.some((e) => !e.subject || !e.content)) {
-      toast.error("Todos os emails precisam ter assunto e conteúdo");
-      return;
-    }
-
-    onSave?.({ name: sequenceName, emails });
-    toast.success("Fluxo salvo com sucesso!");
-  };
 
   if (!isPremium) {
     return (
       <Card className="glass-card">
         <CardContent className="py-12 text-center">
-          <Lock className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h3 className="text-xl font-semibold mb-2">Recurso Premium</h3>
-          <p className="text-muted-foreground mb-6">
-            O Fluxo de Funil está disponível apenas para planos Pro e Enterprise.
-          </p>
-          <Button onClick={() => window.location.href = "/pricing"}>
-            <Sparkles className="h-4 w-4 mr-2" />
-            Ver Planos
-          </Button>
+          <Lock className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
+          <h2 className="mb-2 text-xl font-semibold">Recurso do plano Pro</h2>
+          <p className="mb-6 text-muted-foreground">Fluxos de funil estão disponíveis nos planos Pro e Enterprise.</p>
+          <Button asChild><Link to="/pricing"><Sparkles className="mr-2 h-4 w-4" />Ver planos</Link></Button>
         </CardContent>
       </Card>
     );
@@ -295,283 +32,45 @@ export function FunnelFlowBuilder({ onSave }: FunnelFlowBuilderProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Criar Fluxo de Funil
-          </CardTitle>
-          <CardDescription>
-            Configure uma sequência de 5 emails que guiam o lead através do funil de vendas
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Site Analysis Section */}
-          <div className="p-4 rounded-lg border bg-muted/30 space-y-4">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <Globe className="h-4 w-4 text-primary" />
-              Análise de Site (Opcional)
-            </div>
-            <div className="flex gap-2">
-              <div className="flex-1">
-                <Input
-                  value={siteUrl}
-                  onChange={(e) => setSiteUrl(e.target.value)}
-                  placeholder="https://seusite.com.br"
-                  disabled={isAnalyzing}
-                />
-              </div>
-              <Button 
-                onClick={handleAnalyzeSite} 
-                disabled={isAnalyzing || !siteUrl}
-                variant="secondary"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analisando...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Analisar
-                  </>
-                )}
-              </Button>
-            </div>
+      <FunnelSetupCard
+        sequenceName={workflow.sequenceName}
+        niche={workflow.niche}
+        tone={workflow.tone}
+        productDescription={workflow.productDescription}
+        siteUrl={workflow.siteUrl}
+        siteAnalysis={workflow.siteAnalysis}
+        isAnalyzing={workflow.isAnalyzing}
+        isGenerating={workflow.isGenerating}
+        onSequenceNameChange={workflow.setSequenceName}
+        onNicheChange={workflow.setNiche}
+        onToneChange={workflow.setTone}
+        onProductDescriptionChange={workflow.setProductDescription}
+        onSiteUrlChange={workflow.setSiteUrl}
+        onAnalyze={workflow.analyze}
+        onGenerate={workflow.generateAll}
+      />
 
-            {siteAnalysis && (
-              <div className="p-3 rounded-md bg-primary/5 border border-primary/20 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium text-primary">
-                  <CheckCircle2 className="h-4 w-4" />
-                  Site Analisado: {siteAnalysis.brandName || "Marca identificada"}
-                </div>
-                <div className="text-xs text-muted-foreground space-y-1">
-                  {siteAnalysis.description && (
-                    <p className="line-clamp-2">{siteAnalysis.description}</p>
-                  )}
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {siteAnalysis.communication?.tone && (
-                      <Badge variant="secondary" className="text-xs">
-                        Tom: {siteAnalysis.communication.tone}
-                      </Badge>
-                    )}
-                    {siteAnalysis.products && siteAnalysis.products.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {siteAnalysis.products.length} produtos
-                      </Badge>
-                    )}
-                    {siteAnalysis.activeOffers && siteAnalysis.activeOffers.length > 0 && (
-                      <Badge variant="secondary" className="text-xs">
-                        {siteAnalysis.activeOffers.length} ofertas ativas
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Configuration Fields */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>Nome do Fluxo</Label>
-              <Input
-                value={sequenceName}
-                onChange={(e) => setSequenceName(e.target.value)}
-                placeholder="Ex: Lançamento Produto X"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nicho</Label>
-              <Select value={niche} onValueChange={setNiche}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o nicho" />
-                </SelectTrigger>
-                <SelectContent>
-                  {NICHES.map((n) => (
-                    <SelectItem key={n.value} value={n.value}>
-                      {n.icon} {n.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Tom</Label>
-              <Select value={tone} onValueChange={setTone}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tom" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TONES.map((t) => (
-                    <SelectItem key={t.value} value={t.value}>
-                      {t.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Descrição do Produto/Oferta</Label>
-              <Input
-                value={productDescription}
-                onChange={(e) => setProductDescription(e.target.value)}
-                placeholder="Descreva brevemente seu produto..."
-              />
-            </div>
-          </div>
-
-          <Button
-            onClick={handleGenerateAll}
-            disabled={isGenerating || !niche || !tone}
-            className="w-full"
-            size="lg"
-          >
-            {isGenerating ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Gerando funil completo...
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-4 w-4 mr-2" />
-                Gerar Funil Completo com IA
-              </>
-            )}
-          </Button>
-
-          {!siteAnalysis && !productDescription && (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <AlertCircle className="h-3 w-3" />
-              Analise um site ou descreva seu produto para melhores resultados
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Funnel visualization */}
-      <div className="relative">
+      <section aria-label="Emails do fluxo">
         {FUNNEL_STAGES.map((stage, index) => (
-          <div key={stage.id} className="relative">
-            {/* Connector line */}
-            {index < FUNNEL_STAGES.length - 1 && (
-              <div className="absolute left-6 top-full h-8 w-0.5 bg-primary/30 z-0" />
-            )}
-
-            <Card
-              className={cn(
-                "glass-card mb-4 transition-all cursor-pointer",
-                expandedEmail === index && "ring-2 ring-primary"
-              )}
-              onClick={() => setExpandedEmail(expandedEmail === index ? null : index)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="font-bold text-primary">{stage.id}</span>
-                    </div>
-                    <div>
-                      <CardTitle className="text-base flex items-center gap-2">
-                        {stage.name}
-                        {emails[index]?.subject && (
-                          <Badge variant="secondary" className="text-xs">
-                            Configurado
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription className="text-xs">
-                        {stage.emailType}
-                      </CardDescription>
-                      <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                        Ex: {stage.example}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {stage.delay === 0 ? "Imediato" : `+${stage.delay} dias`}
-                    </Badge>
-                    {expandedEmail === index ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4" />
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-
-              {expandedEmail === index && (
-                <CardContent className="pt-4 space-y-4" onClick={(e) => e.stopPropagation()}>
-                  <p className="text-sm text-muted-foreground">{stage.description}</p>
-
-                  <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <Label>Assunto do Email</Label>
-                        <Input
-                          value={emails[index]?.subject || ""}
-                          onChange={(e) => updateEmail(index, "subject", e.target.value)}
-                          placeholder="Digite o assunto..."
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Pré-header</Label>
-                        <Input
-                          value={emails[index]?.preheader || ""}
-                          onChange={(e) => updateEmail(index, "preheader", e.target.value)}
-                          placeholder="Texto de pré-visualização..."
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Conteúdo do Email</Label>
-                      <Textarea
-                        value={emails[index]?.content || ""}
-                        onChange={(e) => updateEmail(index, "content", e.target.value)}
-                        placeholder="Digite o conteúdo do email..."
-                        rows={8}
-                      />
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleGenerateSingle(index)}
-                        disabled={generatingIndex === index}
-                      >
-                        {generatingIndex === index ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Gerando...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="h-4 w-4 mr-2" />
-                            Regenerar com IA
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              )}
-            </Card>
-          </div>
+          <FunnelStageCard
+            key={stage.id}
+            stage={stage}
+            email={workflow.emails[index]}
+            index={index}
+            expanded={workflow.expandedEmail === index}
+            generating={workflow.generatingIndex === index}
+            showConnector={index < FUNNEL_STAGES.length - 1}
+            onToggle={() => workflow.setExpandedEmail(workflow.expandedEmail === index ? null : index)}
+            onGenerate={() => workflow.generateStage(index)}
+            onUpdate={(field, value) => workflow.updateEmail(index, field, value)}
+          />
         ))}
-      </div>
+      </section>
 
-      {/* Save button */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline">Salvar como Rascunho</Button>
-        <Button onClick={handleSave}>
-          <Mail className="h-4 w-4 mr-2" />
-          Salvar Fluxo
+      <div className="flex justify-end">
+        <Button onClick={workflow.save} disabled={workflow.isSaving}>
+          {workflow.isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+          {workflow.isSaving ? "Salvando..." : "Salvar fluxo"}
         </Button>
       </div>
     </div>

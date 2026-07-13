@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { replaceVariablesWithDummy } from "@/lib/emailVariables";
+import { replaceVariablesForPreview } from "@/lib/emailVariables";
 import { sanitizeHtml } from "@/lib/sanitizeHtml";
 
 interface TemplatesPanelProps {
@@ -39,17 +39,17 @@ export function TemplatesPanel({ onUseTemplate, onUseCampaign, onEditVisual }: T
     setPreviewType(type);
   };
 
-  // Get preview content with dummy values for variables
+  // Render merge tags with clearly labeled sample data in the preview only.
   const getPreviewContent = () => {
     if (!previewItem) return null;
     
-    const subject = replaceVariablesWithDummy(previewItem.subject);
-    const content = replaceVariablesWithDummy(previewItem.content);
+    const subject = replaceVariablesForPreview(previewItem.subject);
+    const content = replaceVariablesForPreview(previewItem.content);
     const preheader = 'preheader' in previewItem && previewItem.preheader 
-      ? replaceVariablesWithDummy(previewItem.preheader) 
+      ? replaceVariablesForPreview(previewItem.preheader)
       : null;
     const cta = 'cta' in previewItem && previewItem.cta 
-      ? replaceVariablesWithDummy(previewItem.cta) 
+      ? replaceVariablesForPreview(previewItem.cta)
       : null;
     
     return { subject, content, preheader, cta };

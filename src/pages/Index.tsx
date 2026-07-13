@@ -1,188 +1,210 @@
-import { useNavigate } from "react-router-dom";
+import type { LucideIcon } from "lucide-react";
+import { ArrowRight, Blocks, FileClock, ScanSearch, SplitSquareVertical } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Brand } from "@/components/v2/Brand";
+import { CampaignSpecimen } from "@/components/v2/CampaignSpecimen";
 import { useAuth } from "@/contexts/AuthContext";
-import { ArrowRight, Mail, Sparkles, BarChart3, Zap, Shield, Users } from "lucide-react";
+
+const workflow = [
+  {
+    number: "01",
+    title: "Traga o contexto",
+    description: "Informe o nicho e, se quiser, use seu site como referência para a análise de marca.",
+  },
+  {
+    number: "02",
+    title: "Defina a intenção",
+    description: "Escolha o objetivo da campanha, o público, o tom e as orientações que não podem ser ignoradas.",
+  },
+  {
+    number: "03",
+    title: "Gere o primeiro rascunho",
+    description: "Receba opções de assunto, pré-header, CTA e um corpo de email pronto para revisão.",
+  },
+  {
+    number: "04",
+    title: "Edite e leve com você",
+    description: "Ajuste o conteúdo no editor, confira o preview e exporte o HTML para a sua plataforma de envio.",
+  },
+];
+
+const capabilities: Array<{
+  icon: LucideIcon;
+  title: string;
+  description: string;
+}> = [
+  {
+    icon: ScanSearch,
+    title: "Contexto antes da geração",
+    description: "A análise do site ajuda a orientar posicionamento, público e linguagem antes de escrever.",
+  },
+  {
+    icon: SplitSquareVertical,
+    title: "Opções para decidir",
+    description: "Compare variações de assunto, pré-header e CTA sem perder o fio da campanha.",
+  },
+  {
+    icon: Blocks,
+    title: "Edição visual por blocos",
+    description: "Organize texto, imagens e chamadas, alterne o preview e exporte o resultado em HTML.",
+  },
+  {
+    icon: FileClock,
+    title: "Campanhas organizadas",
+    description: "Consulte gerações anteriores e transforme bons rascunhos em ponto de partida para a próxima ação.",
+  },
+];
 
 export default function Index() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const workspaceRoute = user ? "/dashboard" : "/auth?mode=signup";
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <header className="relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-40 -right-40 h-[500px] w-[500px] rounded-full bg-primary/10 blur-3xl" />
-          <div className="absolute top-20 -left-40 h-[400px] w-[400px] rounded-full bg-accent/10 blur-3xl" />
-        </div>
-
-        <nav className="container flex items-center justify-between py-6 relative">
-          <div className="flex items-center gap-2">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl">
-              E
-            </div>
-            <span className="text-2xl font-bold">Emailnator</span>
-          </div>
-          <div className="flex items-center gap-3">
+      <header className="border-b border-foreground/15 bg-background">
+        <nav className="container flex h-20 items-center justify-between" aria-label="Navegação principal">
+          <Brand />
+          <div className="flex items-center gap-1 sm:gap-3">
+            <a className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground md:block" href="#workflow">
+              Como funciona
+            </a>
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+              <Link to="/pricing">Planos</Link>
+            </Button>
             {user ? (
-              <Button onClick={() => navigate("/dashboard")}>
-                Ir para Dashboard
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button size="sm" onClick={() => navigate("/dashboard")}>
+                Abrir workspace
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => navigate("/auth")}>
+                <Button variant="ghost" size="sm" onClick={() => navigate("/auth")}>
                   Entrar
                 </Button>
-                <Button onClick={() => navigate("/auth?mode=signup")}>
-                  Começar Grátis
+                <Button size="sm" onClick={() => navigate("/auth?mode=signup")}>
+                  Criar conta
                 </Button>
               </>
             )}
           </div>
         </nav>
-
-        <div className="container py-20 lg:py-32 relative">
-          <div className="max-w-3xl mx-auto text-center space-y-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-4 py-1.5 text-sm">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span>Powered by AI</span>
-            </div>
-
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
-              Emails que{" "}
-              <span className="gradient-text">convertem</span>
-              {" "}para seu e-commerce
-            </h1>
-
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-              Crie campanhas de email marketing profissionais em segundos. 
-              IA treinada para o mercado brasileiro que entende seu negócio.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button 
-                size="lg" 
-                className="text-lg px-8"
-                onClick={() => navigate(user ? "/dashboard" : "/auth?mode=signup")}
-              >
-                Começar Grátis
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="text-lg px-8"
-                onClick={() => navigate("/pricing")}
-              >
-                Ver Planos
-              </Button>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              ✓ 5 emails grátis &nbsp; ✓ 1 análise de site &nbsp; ✓ Sem cartão de crédito
-            </p>
-          </div>
-        </div>
       </header>
 
-      {/* Features Section */}
-      <section className="container py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl font-bold mb-4">Tudo que você precisa</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Ferramentas poderosas para criar campanhas de email que geram resultados
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          <FeatureCard
-            icon={<Sparkles className="h-6 w-6" />}
-            title="Geração com IA"
-            description="Emails personalizados criados por inteligência artificial treinada especificamente para e-commerce brasileiro"
-          />
-          <FeatureCard
-            icon={<BarChart3 className="h-6 w-6" />}
-            title="Análise de Site"
-            description="Nossa IA analisa seu site e extrai informações para criar emails ultra-personalizados"
-          />
-          <FeatureCard
-            icon={<Mail className="h-6 w-6" />}
-            title="14 Tipos de Campanha"
-            description="De boas-vindas a recuperação de carrinho, temos templates para todas as situações"
-          />
-          <FeatureCard
-            icon={<Zap className="h-6 w-6" />}
-            title="Resultado Instantâneo"
-            description="Gere emails prontos para usar em segundos, com assunto, preview e HTML otimizado"
-          />
-          <FeatureCard
-            icon={<Shield className="h-6 w-6" />}
-            title="Múltiplos Nichos"
-            description="Suporte especializado para moda, eletrônicos, beleza, pets e mais 10 segmentos"
-          />
-          <FeatureCard
-            icon={<Users className="h-6 w-6" />}
-            title="Times"
-            description="Colabore com sua equipe, compartilhe campanhas e gerencie créditos"
-          />
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="container py-20">
-        <div className="rounded-3xl bg-primary/5 border border-primary/20 p-8 lg:p-16 text-center">
-          <h2 className="text-3xl lg:text-4xl font-bold mb-4">
-            Pronto para turbinar seu email marketing?
-          </h2>
-          <p className="text-muted-foreground text-lg mb-8 max-w-2xl mx-auto">
-            Comece grátis hoje e veja como a IA pode transformar suas campanhas de email
-          </p>
-          <Button 
-            size="lg" 
-            className="text-lg px-8"
-            onClick={() => navigate(user ? "/dashboard" : "/auth?mode=signup")}
-          >
-            Criar conta grátis
-            <ArrowRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="container flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold">
-              E
+      <main id="main-content" tabIndex={-1}>
+        <section className="container grid items-center gap-14 pb-24 pt-16 lg:grid-cols-[1.02fr_0.98fr] lg:pb-32 lg:pt-24">
+          <div className="max-w-3xl animate-fade-in-up">
+            <p className="eyebrow">Campanhas com contexto de marca</p>
+            <h1 className="mt-7 text-[clamp(3.3rem,7vw,6.7rem)] leading-[0.9] tracking-[-0.05em]">
+              O primeiro rascunho já começa com direção.
+            </h1>
+            <p className="mt-8 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
+              Analise uma referência, defina a intenção e gere assunto, pré-header, corpo e CTA em um só fluxo. Depois, refine no editor e exporte o HTML.
+            </p>
+            <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+              <Button size="lg" className="px-6" onClick={() => navigate(workspaceRoute)}>
+                {user ? "Continuar criando" : "Criar primeira campanha"}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button asChild variant="link" className="px-0 text-foreground">
+                <a href="#workflow">Conhecer o fluxo</a>
+              </Button>
             </div>
-            <span className="font-semibold">Emailnator</span>
+            <p className="mt-6 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
+              Plano gratuito disponível · sem cartão para começar
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">
-            © 2024 Emailnator. Todos os direitos reservados.
-          </p>
+
+          <div className="animate-fade-in [animation-delay:120ms]">
+            <CampaignSpecimen />
+          </div>
+        </section>
+
+        <section id="workflow" className="border-y border-foreground/15 bg-card/55 scroll-mt-24">
+          <div className="container grid gap-14 py-24 lg:grid-cols-[0.72fr_1.28fr] lg:py-32">
+            <div className="lg:sticky lg:top-32 lg:self-start">
+              <p className="eyebrow">Um fluxo, quatro decisões</p>
+              <h2 className="mt-5 max-w-md text-4xl leading-[1.02] sm:text-5xl">
+                Menos prompt solto. Mais processo de criação.
+              </h2>
+              <p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">
+                O Emailnator ajuda a estruturar a mensagem. A revisão e o envio continuam sob o seu controle.
+              </p>
+            </div>
+
+            <ol className="border-t border-foreground/20">
+              {workflow.map((step) => (
+                <li key={step.number} className="grid gap-4 border-b border-foreground/20 py-8 sm:grid-cols-[4rem_0.7fr_1fr] sm:items-start">
+                  <span className="font-mono text-xs font-semibold text-primary">{step.number}</span>
+                  <h3 className="text-2xl leading-tight">{step.title}</h3>
+                  <p className="max-w-lg text-sm leading-6 text-muted-foreground">{step.description}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+
+        <section className="container py-24 lg:py-32">
+          <div className="grid gap-8 border-b border-foreground/15 pb-10 lg:grid-cols-[1fr_1.1fr] lg:items-end">
+            <div>
+              <p className="eyebrow">Ferramentas que se conectam</p>
+              <h2 className="mt-5 text-4xl leading-none sm:text-5xl">Do contexto ao arquivo final.</h2>
+            </div>
+            <p className="max-w-2xl text-base leading-7 text-muted-foreground lg:justify-self-end">
+              Cada etapa alimenta a próxima. Você não precisa reconstruir o briefing sempre que muda um assunto ou reorganiza um bloco.
+            </p>
+          </div>
+
+          <div className="mt-14 grid gap-x-16 gap-y-12 md:grid-cols-2">
+            {capabilities.map(({ icon: Icon, title, description }, index) => (
+              <article key={title} className={index % 2 === 1 ? "md:translate-y-12" : undefined}>
+                <div className="flex items-center gap-4">
+                  <span className="grid h-11 w-11 place-items-center rounded-full bg-accent text-primary">
+                    <Icon className="h-4 w-4" strokeWidth={1.8} />
+                  </span>
+                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
+                    Recurso {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3 className="mt-6 text-3xl">{title}</h3>
+                <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="container pb-24 pt-8 lg:pb-32 lg:pt-20">
+          <div className="relative overflow-hidden border border-foreground/20 bg-secondary px-6 py-14 sm:px-12 lg:grid lg:grid-cols-[1fr_auto] lg:items-end lg:px-16 lg:py-16">
+            <span className="absolute -right-4 -top-16 font-display text-[12rem] leading-none text-primary/10" aria-hidden="true">
+              @
+            </span>
+            <div className="relative max-w-3xl">
+              <p className="eyebrow">Próxima campanha</p>
+              <h2 className="mt-5 text-4xl leading-[1.02] sm:text-6xl">Comece com contexto. Termine com uma mensagem sua.</h2>
+            </div>
+            <Button className="relative mt-9 lg:ml-10 lg:mt-0" size="lg" onClick={() => navigate(workspaceRoute)}>
+              {user ? "Abrir workspace" : "Começar gratuitamente"}
+              <ArrowRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-foreground/15">
+        <div className="container flex flex-col gap-6 py-8 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Brand compact />
+            <p className="mt-4 max-w-sm text-xs leading-5 text-muted-foreground">
+              Criação e exportação de campanhas de email. O disparo é feito na plataforma escolhida por você.
+            </p>
+          </div>
+          <div className="flex items-center gap-5 text-xs font-medium text-muted-foreground">
+            <Link className="hover:text-foreground" to="/pricing">Planos</Link>
+            <Link className="hover:text-foreground" to="/auth">Entrar</Link>
+            <span className="font-mono">© {new Date().getFullYear()}</span>
+          </div>
         </div>
       </footer>
-    </div>
-  );
-}
-
-function FeatureCard({ 
-  icon, 
-  title, 
-  description 
-}: { 
-  icon: React.ReactNode; 
-  title: string; 
-  description: string;
-}) {
-  return (
-    <div className="group rounded-2xl border border-border bg-card p-6 transition-all hover:border-primary/50 hover:shadow-lg">
-      <div className="mb-4 inline-flex rounded-xl bg-primary/10 p-3 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-        {icon}
-      </div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useUserCredits } from "@/hooks/useUserCredits";
 import { cn } from "@/lib/utils";
 
 export function CreditsDisplay() {
-  const { totalEmails, totalAnalyses, isLoading, credits } = useUserCredits();
+  const { totalEmails, totalAnalyses, isLoading } = useUserCredits();
 
   if (isLoading) {
     return (

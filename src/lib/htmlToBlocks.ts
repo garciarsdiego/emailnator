@@ -1,4 +1,4 @@
-import { EmailBlock, BlockType, DEFAULT_BLOCKS } from "@/types/emailBuilder";
+import { EmailBlock, DEFAULT_BLOCKS } from "@/types/emailBuilder";
 
 /**
  * Converts HTML content to email blocks for the visual builder

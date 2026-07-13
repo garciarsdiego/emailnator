@@ -1,5 +1,3 @@
-import { ReactNode } from "react";
-
 export interface EmailBlock {
   id: string;
   type: BlockType;
@@ -80,13 +78,6 @@ export interface BlockContent {
   productOldPrice?: string;
   productDescription?: string;
   productUrl?: string;
-}
-
-export interface EmailBlockDefinition {
-  type: BlockType;
-  label: string;
-  icon: ReactNode;
-  defaultContent: BlockContent;
 }
 
 export const DEFAULT_BLOCKS: Record<BlockType, BlockContent> = {

@@ -1,24 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { Tables, TablesUpdate } from "@/integrations/supabase/types";
 
-export interface BrandManual {
-  id: string;
-  user_id: string;
-  brand_name: string | null;
-  primary_color: string;
-  secondary_color: string | null;
-  accent_color: string | null;
-  background_color: string;
-  heading_font: string;
-  body_font: string;
-  tone: string;
-  language_style: string | null;
-  key_phrases: string[] | null;
-  logo_url: string | null;
-  created_at: string;
-  updated_at: string;
-}
+export type BrandManual = Tables<"brand_manuals">;
 
 export function useBrandManual() {
   const { user } = useAuth();
@@ -41,41 +26,17 @@ export function useBrandManual() {
   });
 
   const saveBrandManual = useMutation({
-    mutationFn: async (manual: Partial<Omit<BrandManual, "id" | "user_id" | "created_at" | "updated_at">>) => {
+    mutationFn: async (manual: TablesUpdate<"brand_manuals">) => {
       if (!user) throw new Error("User not authenticated");
-      
-      // Check if exists
-      const { data: existing } = await supabase
+
+      const { data, error } = await supabase
         .from("brand_manuals")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
+        .upsert({ ...manual, user_id: user.id }, { onConflict: "user_id" })
+        .select()
+        .single();
 
-      if (existing) {
-        // Update
-        const { data, error } = await supabase
-          .from("brand_manuals")
-          .update(manual)
-          .eq("user_id", user.id)
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      } else {
-        // Insert
-        const { data, error } = await supabase
-          .from("brand_manuals")
-          .insert({
-            ...manual,
-            user_id: user.id,
-          })
-          .select()
-          .single();
-
-        if (error) throw error;
-        return data;
-      }
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["brand-manual"] });

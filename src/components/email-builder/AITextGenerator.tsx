@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sparkles, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { generateBlockText } from "@/features/email-generation/api/emailGenerationApi";
+import { useIdempotencyKey } from "@/shared/hooks/useIdempotencyKey";
 
 interface AITextGeneratorProps {
   onGenerated: (text: string) => void;
@@ -24,6 +24,7 @@ const TEXT_TYPES = [
 ];
 
 export function AITextGenerator({ onGenerated, currentText, blockType }: AITextGeneratorProps) {
+  const generationAttempt = useIdempotencyKey();
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [textType, setTextType] = useState("headline");
@@ -33,27 +34,21 @@ export function AITextGenerator({ onGenerated, currentText, blockType }: AITextG
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-block-text", {
-        body: {
-          textType,
-          context,
-          tone,
-          blockType,
-          currentText,
-        },
-      });
-
-      if (error) throw error;
-
-      if (data?.text) {
-        onGenerated(data.text);
-        setIsOpen(false);
-        setContext("");
-        toast.success("Texto gerado com sucesso!");
-      }
-    } catch (error: any) {
-      console.error("Error generating text:", error);
-      toast.error(error.message || "Erro ao gerar texto");
+      const payload = {
+        textType,
+        context,
+        tone,
+        blockType,
+        currentText,
+      };
+      const text = await generateBlockText(payload, generationAttempt.getKey(payload));
+      onGenerated(text);
+      setIsOpen(false);
+      setContext("");
+      toast.success("Texto gerado com sucesso!");
+      generationAttempt.complete();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao gerar texto");
     } finally {
       setIsGenerating(false);
     }

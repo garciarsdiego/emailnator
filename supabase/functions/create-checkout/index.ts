@@ -1,96 +1,104 @@
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const logStep = (step: string, details?: any) => {
-  const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
-  console.log(`[CREATE-CHECKOUT] ${step}${detailsStr}`);
-};
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
+import type Stripe from "https://esm.sh/stripe@18.5.0";
+import { requireUser } from "../_shared/auth.ts";
+import { appOrigin, preflight } from "../_shared/cors.ts";
+import { idempotencyKey } from "../_shared/credits.ts";
+import { AppError } from "../_shared/errors.ts";
+import { errorResponse, jsonResponse, readJson, requestId } from "../_shared/http.ts";
+import { logInfo } from "../_shared/logger.ts";
+import { enforceRateLimit } from "../_shared/rate-limit.ts";
+import { checkoutItem } from "../_shared/stripe-catalog.ts";
+import { stripeClient } from "../_shared/stripe-client.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? ""
-  );
+  const optionsResponse = preflight(req);
+  if (optionsResponse) return optionsResponse;
+  const traceId = requestId(req);
 
   try {
-    logStep("Function started");
-
-    const { priceId, mode } = await req.json();
-    logStep("Request body parsed", { priceId, mode });
-
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) throw new Error("No authorization header provided");
-
-    const token = authHeader.replace("Bearer ", "");
-    const { data } = await supabaseClient.auth.getUser(token);
-    const user = data.user;
-    if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
-
-    const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
-      apiVersion: "2025-08-27.basil",
+    const auth = await requireUser(req);
+    await enforceRateLimit({
+      serviceClient: auth.serviceClient,
+      userId: auth.user.id,
+      action: "create_checkout",
+      maxRequests: 10,
+      windowSeconds: 600,
     });
+    const item = checkoutItem(await readJson(req));
+    const stripe = stripeClient();
+    const { data: billing, error: billingError } = await auth.serviceClient
+      .from("billing_customers")
+      .select("stripe_customer_id, status")
+      .eq("user_id", auth.user.id)
+      .maybeSingle();
+    if (billingError) throw new AppError("BILLING_LOOKUP_FAILED", 500, "Unable to load billing account", false);
 
-    // Check if customer exists
-    const customers = await stripe.customers.list({ email: user.email, limit: 1 });
-    let customerId;
-    if (customers.data.length > 0) {
-      customerId = customers.data[0].id;
-      logStep("Existing customer found", { customerId });
+    let customerId = billing?.status === "customer_deleted"
+      ? null
+      : billing?.stripe_customer_id as string | null | undefined;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: auth.user.email,
+        name: typeof auth.user.user_metadata?.full_name === "string"
+          ? auth.user.user_metadata.full_name.slice(0, 160)
+          : undefined,
+        metadata: { user_id: auth.user.id },
+      }, { idempotencyKey: `email-muse:customer:${auth.user.id}` });
+      customerId = customer.id;
+      const { error } = await auth.serviceClient.from("billing_customers").upsert({
+        user_id: auth.user.id,
+        stripe_customer_id: customerId,
+        status: "inactive",
+        plan: "free",
+      }, { onConflict: "user_id" });
+      if (error) throw new AppError("BILLING_ACCOUNT_SAVE_FAILED", 500, "Unable to save billing account", false);
     }
 
-    const origin = req.headers.get("origin") || "http://localhost:5173";
-
-    const sessionConfig: Stripe.Checkout.SessionCreateParams = {
+    const origin = appOrigin(req);
+    const metadata: Record<string, string> = {
+      user_id: auth.user.id,
+      catalog_key: item.key,
+      checkout_mode: item.mode,
+      price_id: item.priceId,
+      ...(item.plan ? { plan: item.plan } : {}),
+      ...(item.emailCredits ? { email_credits: String(item.emailCredits) } : {}),
+    };
+    const session: Stripe.Checkout.SessionCreateParams = {
       customer: customerId,
-      customer_email: customerId ? undefined : user.email,
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      mode: mode || "subscription",
-      success_url: `${origin}/dashboard?payment=success`,
+      client_reference_id: auth.user.id,
+      line_items: [{ price: item.priceId, quantity: 1 }],
+      mode: item.mode,
+      success_url: `${origin}/dashboard?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/pricing?payment=canceled`,
-      metadata: {
-        user_id: user.id,
-      },
+      metadata,
+      allow_promotion_codes: false,
     };
 
-    // Add trial period for subscriptions
-    if (mode === "subscription") {
-      sessionConfig.subscription_data = {
-        trial_period_days: 7,
-        metadata: {
-          user_id: user.id,
-        },
+    if (item.mode === "subscription") {
+      const configuredTrial = Number(Deno.env.get("STRIPE_TRIAL_DAYS") ?? 7);
+      session.subscription_data = {
+        ...(Number.isInteger(configuredTrial) && configuredTrial > 0
+          ? { trial_period_days: Math.min(configuredTrial, 30) }
+          : {}),
+        metadata,
       };
+    } else {
+      session.payment_intent_data = { metadata };
     }
 
-    const session = await stripe.checkout.sessions.create(sessionConfig);
-    logStep("Checkout session created", { sessionId: session.id, url: session.url });
-
-    return new Response(JSON.stringify({ url: session.url }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    const requestKey = idempotencyKey(req);
+    const checkout = await stripe.checkout.sessions.create(session, {
+      idempotencyKey: `email-muse:checkout:${auth.user.id}:${item.key}:${requestKey}`.slice(0, 255),
     });
+    if (!checkout.url) throw new AppError("CHECKOUT_URL_MISSING", 502, "Stripe did not return a checkout URL", false);
+    logInfo("checkout_created", {
+      requestId: traceId,
+      userId: auth.user.id,
+      catalogKey: item.key,
+      sessionId: checkout.id,
+    });
+    return jsonResponse(req, { url: checkout.url, sessionId: checkout.id });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR", { message: errorMessage });
-    return new Response(JSON.stringify({ error: errorMessage }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    return errorResponse(req, error, traceId);
   }
 });

@@ -1,4 +1,4 @@
-import { EmailBlock, BlockContent } from "@/types/emailBuilder";
+import { EmailBlock } from "@/types/emailBuilder";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { cn } from "@/lib/utils";

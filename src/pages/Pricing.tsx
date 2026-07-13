@@ -1,34 +1,67 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, CircleDollarSign, Settings } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles, Loader2 } from "lucide-react";
+import { CreditPackCard, PricingCard } from "@/components/v2/PricingCard";
 import { useAuth } from "@/contexts/AuthContext";
 import { useProfile } from "@/hooks/useProfile";
 import { PLANS } from "@/lib/constants";
-import { STRIPE_PLANS, STRIPE_CREDIT_PACKS } from "@/lib/stripe";
-import { supabase } from "@/integrations/supabase/client";
+import { STRIPE_CREDIT_PACKS, STRIPE_PLANS } from "@/lib/stripe";
 import { toast } from "sonner";
-import { useEffect } from "react";
+import { createCheckout, createCustomerPortal } from "@/features/billing/api/checkoutApi";
+import { useIdempotencyKey } from "@/shared/hooks/useIdempotencyKey";
+
+type PaidPlan = keyof typeof STRIPE_PLANS;
+type CreditPack = keyof typeof STRIPE_CREDIT_PACKS;
+
+const planFeatures = {
+  free: [
+    `${PLANS.free.emails} gerações de email por ciclo`,
+    `${PLANS.free.analyses} análise de site por ciclo`,
+    "Gerador orientado e editor visual",
+    "Histórico de campanhas",
+  ],
+  starter: [
+    `${PLANS.starter.emails} gerações de email por mês`,
+    `${PLANS.starter.analyses} análises de site por mês`,
+    "Gerador orientado e editor visual",
+    "Histórico de campanhas",
+  ],
+  pro: [
+    `${PLANS.pro.emails} gerações de email por mês`,
+    `${PLANS.pro.analyses} análises de site por mês`,
+    "Gerador orientado e editor visual",
+    "Histórico de campanhas",
+  ],
+};
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Não foi possível iniciar o checkout.";
+}
 
 export default function Pricing() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [loadingPack, setLoadingPack] = useState<string | null>(null);
+  const [loadingPlan, setLoadingPlan] = useState<PaidPlan | null>(null);
+  const [loadingPack, setLoadingPack] = useState<CreditPack | null>(null);
+  const [portalLoading, setPortalLoading] = useState(false);
+  const checkoutAttempt = useIdempotencyKey();
 
   useEffect(() => {
-    const payment = searchParams.get("payment");
-    if (payment === "canceled") {
-      toast.error("Pagamento cancelado");
+    if (searchParams.get("payment") === "canceled") {
+      toast.info("Checkout cancelado. Nenhuma cobrança foi realizada.");
     }
   }, [searchParams]);
 
-  const handleSelectPlan = async (planKey: "starter" | "pro") => {
+  const openCheckout = (url: string) => {
+    const checkoutWindow = window.open(url, "_blank", "noopener,noreferrer");
+    if (!checkoutWindow) window.location.assign(url);
+  };
+
+  const handleSelectPlan = async (planKey: PaidPlan) => {
     if (!user) {
       navigate("/auth?mode=signup");
       return;
@@ -36,24 +69,18 @@ export default function Pricing() {
 
     setLoadingPlan(planKey);
     try {
-      const plan = STRIPE_PLANS[planKey];
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: plan.priceId, mode: "subscription" },
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      toast.error("Erro ao iniciar checkout: " + error.message);
+      const payload = { productKey: planKey };
+      const url = await createCheckout(planKey, checkoutAttempt.getKey(payload));
+      checkoutAttempt.complete();
+      openCheckout(url);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     } finally {
       setLoadingPlan(null);
     }
   };
 
-  const handleBuyCredits = async (packKey: "pack10" | "pack50" | "pack150") => {
+  const handleBuyCredits = async (packKey: CreditPack) => {
     if (!user) {
       navigate("/auth?mode=signup");
       return;
@@ -61,274 +88,147 @@ export default function Pricing() {
 
     setLoadingPack(packKey);
     try {
-      const pack = STRIPE_CREDIT_PACKS[packKey];
-      const { data, error } = await supabase.functions.invoke("create-checkout", {
-        body: { priceId: pack.priceId, mode: "payment" },
-      });
-
-      if (error) throw error;
-      if (data?.url) {
-        window.open(data.url, "_blank");
-      }
-    } catch (error: any) {
-      console.error("Checkout error:", error);
-      toast.error("Erro ao iniciar checkout: " + error.message);
+      const payload = { productKey: packKey };
+      const url = await createCheckout(packKey, checkoutAttempt.getKey(payload));
+      checkoutAttempt.complete();
+      openCheckout(url);
+    } catch (error: unknown) {
+      toast.error(getErrorMessage(error));
     } finally {
       setLoadingPack(null);
     }
   };
 
-  const currentPlan = profile?.plan || "free";
-
-  const getPlanButtonContent = (planKey: string, label: string) => {
-    if (loadingPlan === planKey) {
-      return <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>;
+  const handleManageSubscription = async () => {
+    setPortalLoading(true);
+    try {
+      openCheckout(await createCustomerPortal());
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setPortalLoading(false);
     }
-    if (currentPlan === planKey) {
-      return "Plano Atual";
-    }
-    return label;
   };
+
+  const currentPlan = user ? profile?.plan ?? "free" : null;
 
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Planos e Preços</h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Escolha o plano ideal para o seu negócio. Cancele quando quiser.
-          </p>
-        </div>
+      <main id="main-content" tabIndex={-1} className="container pb-24 pt-12 lg:pt-16">
+        <Button variant="link" className="-ml-1 px-0 text-muted-foreground hover:text-foreground" onClick={() => navigate(user ? "/dashboard" : "/")}>
+          <ArrowLeft className="h-4 w-4" />
+          {user ? "Voltar ao workspace" : "Voltar ao início"}
+        </Button>
 
-        <div className="grid gap-6 lg:grid-cols-4">
-          {/* Free */}
-          <Card className={`glass-card relative ${currentPlan === "free" ? "border-primary" : ""}`}>
-            {currentPlan === "free" && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground">Seu Plano</Badge>
-              </div>
-            )}
-            <CardHeader>
-              <CardTitle>Free</CardTitle>
-              <CardDescription>Para experimentar</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">R$0</span>
-                <span className="text-muted-foreground">/mês</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-3">
-                <PlanFeature>{PLANS.free.emails} emails/mês</PlanFeature>
-                <PlanFeature>{PLANS.free.analyses} análise de site</PlanFeature>
-                <PlanFeature>{PLANS.free.users} usuário</PlanFeature>
-                <PlanFeature>Histórico de {PLANS.free.history}</PlanFeature>
-                <PlanFeature>Créditos expiram no ciclo</PlanFeature>
-              </ul>
-              <Button 
-                variant="outline" 
-                className="w-full"
-                disabled={currentPlan === "free"}
-                onClick={() => navigate("/dashboard")}
-              >
-                {currentPlan === "free" ? "Plano Atual" : "Continuar Grátis"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Starter */}
-          <Card className={`glass-card relative ${currentPlan === "starter" ? "border-primary" : ""}`}>
-            {currentPlan === "starter" && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground">Seu Plano</Badge>
-              </div>
-            )}
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Starter</CardTitle>
-                <Badge variant="secondary">7 dias grátis</Badge>
-              </div>
-              <CardDescription>Para pequenos negócios</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">R${PLANS.starter.price}</span>
-                <span className="text-muted-foreground">/mês</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-3">
-                <PlanFeature>{PLANS.starter.emails} emails/mês</PlanFeature>
-                <PlanFeature>{PLANS.starter.analyses} análises de site</PlanFeature>
-                <PlanFeature>{PLANS.starter.users} usuários</PlanFeature>
-                <PlanFeature>Histórico de {PLANS.starter.history}</PlanFeature>
-                <PlanFeature>Créditos expiram no ciclo</PlanFeature>
-              </ul>
-              <Button 
-                className="w-full"
-                onClick={() => handleSelectPlan("starter")}
-                disabled={loadingPlan === "starter" || currentPlan === "starter"}
-              >
-                {getPlanButtonContent("starter", "Começar Trial")}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Pro */}
-          <Card className={`glass-card relative ${currentPlan === "pro" ? "border-primary shadow-lg" : "border-primary/50 shadow-lg"}`}>
-            {currentPlan === "pro" ? (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground">Seu Plano</Badge>
-              </div>
-            ) : (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground">
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  Mais Popular
-                </Badge>
-              </div>
-            )}
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Pro</CardTitle>
-                <Badge variant="secondary">7 dias grátis</Badge>
-              </div>
-              <CardDescription>Para negócios em crescimento</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">R${PLANS.pro.price}</span>
-                <span className="text-muted-foreground">/mês</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-3">
-                <PlanFeature>{PLANS.pro.emails} emails/mês</PlanFeature>
-                <PlanFeature>{PLANS.pro.analyses} análises de site</PlanFeature>
-                <PlanFeature>{PLANS.pro.users} usuários</PlanFeature>
-                <PlanFeature>Histórico {PLANS.pro.history}</PlanFeature>
-                <PlanFeature>Créditos válidos por 12 meses</PlanFeature>
-                <PlanFeature>Fluxo de Funil de Emails</PlanFeature>
-              </ul>
-              <Button 
-                className="w-full"
-                onClick={() => handleSelectPlan("pro")}
-                disabled={loadingPlan === "pro" || currentPlan === "pro"}
-              >
-                {getPlanButtonContent("pro", "Começar Trial")}
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Enterprise */}
-          <Card className={`glass-card relative ${currentPlan === "enterprise" ? "border-primary" : ""}`}>
-            {currentPlan === "enterprise" && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                <Badge className="bg-primary text-primary-foreground">Seu Plano</Badge>
-              </div>
-            )}
-            <CardHeader>
-              <CardTitle>Enterprise</CardTitle>
-              <CardDescription>Para grandes operações</CardDescription>
-              <div className="mt-4">
-                <span className="text-4xl font-bold">Sob consulta</span>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <ul className="space-y-3">
-                <PlanFeature>Emails ilimitados</PlanFeature>
-                <PlanFeature>Análises ilimitadas</PlanFeature>
-                <PlanFeature>Usuários ilimitados</PlanFeature>
-                <PlanFeature>Histórico ilimitado</PlanFeature>
-                <PlanFeature>Créditos nunca expiram</PlanFeature>
-                <PlanFeature>Suporte prioritário</PlanFeature>
-                <PlanFeature>Fluxo de Funil de Emails</PlanFeature>
-              </ul>
-              <Button 
-                variant="outline"
-                className="w-full"
-                onClick={() => window.open("mailto:contato@emailnator.com", "_blank")}
-              >
-                Falar com Vendas
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Credit Packages */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold text-center mb-8">Pacotes de Créditos Avulsos</h2>
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-lg">10 Emails</CardTitle>
-                <div className="text-2xl font-bold">R$19</div>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => handleBuyCredits("pack10")}
-                  disabled={loadingPack === "pack10"}
-                >
-                  {loadingPack === "pack10" ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>
-                  ) : (
-                    "Comprar"
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-lg">50 Emails</CardTitle>
-                <div className="text-2xl font-bold">R$79</div>
-                <Badge variant="secondary" className="mt-2">Economia de 17%</Badge>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => handleBuyCredits("pack50")}
-                  disabled={loadingPack === "pack50"}
-                >
-                  {loadingPack === "pack50" ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>
-                  ) : (
-                    "Comprar"
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-            <Card className="glass-card">
-              <CardHeader>
-                <CardTitle className="text-lg">150 Emails</CardTitle>
-                <div className="text-2xl font-bold">R$199</div>
-                <Badge variant="secondary" className="mt-2">Economia de 30%</Badge>
-              </CardHeader>
-              <CardContent>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => handleBuyCredits("pack150")}
-                  disabled={loadingPack === "pack150"}
-                >
-                  {loadingPack === "pack150" ? (
-                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>
-                  ) : (
-                    "Comprar"
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
+        <header className="mt-10 grid gap-7 border-b border-foreground/20 pb-10 lg:grid-cols-[1fr_0.72fr] lg:items-end">
+          <div>
+            <p className="eyebrow">Planos e créditos</p>
+            <h1 className="mt-5 max-w-4xl text-5xl leading-[0.98] sm:text-6xl lg:text-7xl">
+              Escolha pelo volume que você realmente cria.
+            </h1>
           </div>
-        </div>
+          <p className="max-w-xl text-base leading-7 text-muted-foreground lg:justify-self-end">
+            Todos os planos incluem o gerador orientado, o editor visual e o histórico. O que muda é a quantidade mensal de gerações e análises.
+          </p>
+        </header>
+
+        <section className="mt-12 grid gap-5 lg:grid-cols-12 lg:items-stretch" aria-label="Planos disponíveis">
+          <div className="lg:col-span-3">
+            <PricingCard
+              name="Gratuito"
+              description="Para conhecer o fluxo e criar as primeiras campanhas."
+              price={PLANS.free.price}
+              features={planFeatures.free}
+              actionLabel={currentPlan === "free" ? "Plano atual" : "Começar grátis"}
+              onAction={() => navigate(user ? "/dashboard" : "/auth?mode=signup")}
+              current={currentPlan === "free"}
+              disabled={currentPlan === "free"}
+            />
+          </div>
+
+          <div className="lg:col-span-4 lg:translate-y-7">
+            <PricingCard
+              name="Starter"
+              description="Para uma rotina de campanhas enxuta e frequente."
+              price={PLANS.starter.price}
+              features={planFeatures.starter}
+              actionLabel={currentPlan === "starter" ? "Plano atual" : "Testar por 7 dias"}
+              onAction={() => void handleSelectPlan("starter")}
+              current={currentPlan === "starter"}
+              loading={loadingPlan === "starter"}
+              disabled={currentPlan === "starter"}
+              note="7 dias de teste antes da primeira cobrança"
+            />
+          </div>
+
+          <div className="lg:col-span-5">
+            <PricingCard
+              name="Pro"
+              description="Para quem produz mais campanhas e usa referências de site com frequência."
+              price={PLANS.pro.price}
+              features={planFeatures.pro}
+              actionLabel={currentPlan === "pro" ? "Plano atual" : "Testar por 7 dias"}
+              onAction={() => void handleSelectPlan("pro")}
+              current={currentPlan === "pro"}
+              recommended
+              loading={loadingPlan === "pro"}
+              disabled={currentPlan === "pro"}
+              note="7 dias de teste antes da primeira cobrança"
+            />
+          </div>
+        </section>
+
+        {currentPlan && currentPlan !== "free" && (
+          <div className="mt-12 flex justify-center">
+            <Button variant="outline" onClick={() => void handleManageSubscription()} disabled={portalLoading}>
+              <Settings className="mr-2 h-4 w-4" />
+              {portalLoading ? "Abrindo portal..." : "Gerenciar assinatura"}
+            </Button>
+          </div>
+        )}
+
+        <section className="mt-24 border-y border-foreground/20 py-9 lg:mt-32" aria-labelledby="credit-packs-title">
+          <div className="grid gap-9 lg:grid-cols-[0.72fr_1.28fr] lg:items-center">
+            <div>
+              <span className="grid h-10 w-10 place-items-center rounded-full bg-accent text-primary">
+                <CircleDollarSign className="h-4 w-4" />
+              </span>
+              <h2 id="credit-packs-title" className="mt-5 text-3xl">Precisa de fôlego extra?</h2>
+              <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
+                Adicione gerações de email sem trocar o seu plano.
+              </p>
+            </div>
+
+            <div className="md:grid md:grid-cols-3">
+              <CreditPackCard
+                emails={STRIPE_CREDIT_PACKS.pack10.emails}
+                price={STRIPE_CREDIT_PACKS.pack10.price}
+                loading={loadingPack === "pack10"}
+                onBuy={() => void handleBuyCredits("pack10")}
+              />
+              <CreditPackCard
+                emails={STRIPE_CREDIT_PACKS.pack50.emails}
+                price={STRIPE_CREDIT_PACKS.pack50.price}
+                annotation="R$ 1,58 cada"
+                loading={loadingPack === "pack50"}
+                onBuy={() => void handleBuyCredits("pack50")}
+              />
+              <CreditPackCard
+                emails={STRIPE_CREDIT_PACKS.pack150.emails}
+                price={STRIPE_CREDIT_PACKS.pack150.price}
+                annotation="R$ 1,33 cada"
+                loading={loadingPack === "pack150"}
+                onBuy={() => void handleBuyCredits("pack150")}
+              />
+            </div>
+          </div>
+        </section>
+
+        <p className="mx-auto mt-10 max-w-3xl text-center text-xs leading-5 text-muted-foreground">
+          O Emailnator cria, organiza e exporta o conteúdo das campanhas. O disparo é realizado na plataforma de email escolhida por você.
+        </p>
       </main>
     </div>
-  );
-}
-
-function PlanFeature({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex items-center gap-2 text-sm">
-      <Check className="h-4 w-4 text-primary shrink-0" />
-      <span>{children}</span>
-    </li>
   );
 }

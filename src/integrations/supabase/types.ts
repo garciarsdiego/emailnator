@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_rate_limits: {
+        Row: {
+          action: string
+          last_request_at: string
+          request_count: number
+          user_id: string
+          window_started_at: string
+        }
+        Insert: {
+          action: string
+          last_request_at?: string
+          request_count?: number
+          user_id: string
+          window_started_at?: string
+        }
+        Update: {
+          action?: string
+          last_request_at?: string
+          request_count?: number
+          user_id?: string
+          window_started_at?: string
+        }
+        Relationships: []
+      }
       brand_manuals: {
         Row: {
           accent_color: string | null
@@ -68,6 +92,51 @@ export type Database = {
         }
         Relationships: []
       }
+      billing_customers: {
+        Row: {
+          cancel_at_period_end: boolean
+          created_at: string
+          current_period_end: string | null
+          current_period_start: string | null
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          stripe_subscription_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean
+          created_at?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          stripe_subscription_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       campaigns: {
         Row: {
           campaign_type: string
@@ -113,6 +182,56 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_ledger: {
+        Row: {
+          amount: number
+          balance_after: number
+          bucket: string
+          created_at: string
+          credit_type: string
+          generation_job_id: string | null
+          id: string
+          idempotency_key: string
+          metadata: Json
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          bucket: string
+          created_at?: string
+          credit_type: string
+          generation_job_id?: string | null
+          id?: string
+          idempotency_key: string
+          metadata?: Json
+          reason: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          bucket?: string
+          created_at?: string
+          credit_type?: string
+          generation_job_id?: string | null
+          id?: string
+          idempotency_key?: string
+          metadata?: Json
+          reason?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_ledger_generation_job_id_fkey"
+            columns: ["generation_job_id"]
+            isOneToOne: false
+            referencedRelation: "generation_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_blocks: {
         Row: {
           block_type: string
@@ -139,6 +258,45 @@ export type Database = {
           email_id?: string | null
           id?: string
           position?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      email_documents: {
+        Row: {
+          blocks: Json
+          created_at: string
+          id: string
+          name: string
+          preheader: string
+          rendered_html: string
+          schema_version: number
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          blocks?: Json
+          created_at?: string
+          id?: string
+          name: string
+          preheader?: string
+          rendered_html?: string
+          schema_version?: number
+          subject?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          blocks?: Json
+          created_at?: string
+          id?: string
+          name?: string
+          preheader?: string
+          rendered_html?: string
+          schema_version?: number
+          subject?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -224,6 +382,63 @@ export type Database = {
         }
         Relationships: []
       }
+      generation_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          credit_type: string
+          credits_reserved: number
+          error_code: string | null
+          error_message: string | null
+          id: string
+          idempotency_key: string
+          job_type: string
+          refunded_at: string | null
+          request_fingerprint: string | null
+          result: Json | null
+          started_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          credit_type: string
+          credits_reserved: number
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key: string
+          job_type: string
+          refunded_at?: string | null
+          request_fingerprint?: string | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          credit_type?: string
+          credits_reserved?: number
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          idempotency_key?: string
+          job_type?: string
+          refunded_at?: string | null
+          request_fingerprint?: string | null
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -232,6 +447,7 @@ export type Database = {
           full_name: string | null
           id: string
           plan: Database["public"]["Enums"]["subscription_plan"]
+          plan_source: string
           plan_started_at: string | null
           trial_ends_at: string | null
           updated_at: string
@@ -243,6 +459,7 @@ export type Database = {
           full_name?: string | null
           id: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          plan_source?: string
           plan_started_at?: string | null
           trial_ends_at?: string | null
           updated_at?: string
@@ -254,6 +471,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           plan?: Database["public"]["Enums"]["subscription_plan"]
+          plan_source?: string
           plan_started_at?: string | null
           trial_ends_at?: string | null
           updated_at?: string
@@ -370,6 +588,72 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_events: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          event_id: string
+          event_type: string
+          payload: Json
+          processed_at: string | null
+          processing_status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          event_id: string
+          event_type: string
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          event_id?: string
+          event_type?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscription_credit_cycles: {
+        Row: {
+          created_at: string
+          id: string
+          period_end: string | null
+          period_start: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          source_event_key: string
+          stripe_subscription_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start: string
+          plan: Database["public"]["Enums"]["subscription_plan"]
+          source_event_key: string
+          stripe_subscription_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string
+          plan?: Database["public"]["Enums"]["subscription_plan"]
+          source_event_key?: string
+          stripe_subscription_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_credits: {
         Row: {
           analyses_monthly_limit: number
@@ -438,14 +722,94 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_credit_adjustment: {
+        Args: {
+          p_amount: number
+          p_bucket: string
+          p_credit_type: string
+          p_idempotency_key: string
+          p_metadata?: Json
+          p_reason: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      complete_generation_job: {
+        Args: { p_job_id: string; p_result: Json; p_user_id: string }
+        Returns: undefined
+      }
       consume_analysis_credit: { Args: { p_user_id: string }; Returns: boolean }
       consume_email_credit: { Args: { p_user_id: string }; Returns: boolean }
+      enforce_api_rate_limit: {
+        Args: {
+          p_action: string
+          p_max_requests: number
+          p_user_id: string
+          p_window_seconds: number
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      mark_generation_job_processing: {
+        Args: { p_job_id: string; p_user_id: string }
+        Returns: undefined
+      }
+      refund_generation_credits: {
+        Args: {
+          p_error_code: string
+          p_error_message?: string
+          p_job_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      refund_stale_generation_jobs: {
+        Args: { p_older_than_seconds?: number; p_user_id: string }
+        Returns: number
+      }
+      reserve_generation_credits: {
+        Args: {
+          p_amount: number
+          p_credit_type: string
+          p_idempotency_key: string
+          p_job_type: string
+          p_request_fingerprint?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      save_email_sequence: {
+        Args: {
+          p_description: string
+          p_emails: Json
+          p_name: string
+          p_niche: string
+          p_tone: string
+        }
+        Returns: string
+      }
+      sync_subscription_state: {
+        Args: {
+          p_cancel_at_period_end?: boolean
+          p_current_period_end?: string
+          p_current_period_start?: string
+          p_plan: string
+          p_reset_cycle?: boolean
+          p_source_event_key?: string
+          p_status: string
+          p_stripe_customer_id?: string
+          p_stripe_price_id?: string
+          p_stripe_product_id?: string
+          p_stripe_subscription_id?: string
+          p_user_id: string
+        }
+        Returns: Json
       }
     }
     Enums: {

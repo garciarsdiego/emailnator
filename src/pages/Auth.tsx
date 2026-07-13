@@ -1,16 +1,18 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import type { FormEvent } from "react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, ArrowRight, Loader2, LockKeyhole, Mail, UserRound } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthAside } from "@/components/v2/AuthAside";
+import { Brand } from "@/components/v2/Brand";
+import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Loader2, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { z } from "zod";
 
-const emailSchema = z.string().email("Email inválido");
-const passwordSchema = z.string().min(6, "Senha deve ter no mínimo 6 caracteres");
+const emailSchema = z.string().email("Informe um email válido.");
+const passwordSchema = z.string().min(6, "Use pelo menos 6 caracteres.");
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -18,112 +20,113 @@ export default function Auth() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [referralCode, setReferralCode] = useState(searchParams.get("ref") || "");
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const referralCode = searchParams.get("ref") || "";
+  const requestedRedirect = searchParams.get("redirect");
+  const redirectTarget = requestedRedirect?.startsWith("/") && !requestedRedirect.startsWith("//")
+    ? requestedRedirect
+    : "/dashboard";
 
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) {
-      navigate("/dashboard");
-    }
-  }, [user, navigate]);
+    if (user) navigate(redirectTarget, { replace: true });
+  }, [user, navigate, redirectTarget]);
 
   const validateForm = () => {
-    const newErrors: { email?: string; password?: string } = {};
-    
+    const nextErrors: { email?: string; password?: string } = {};
     const emailResult = emailSchema.safeParse(email);
-    if (!emailResult.success) {
-      newErrors.email = emailResult.error.errors[0].message;
-    }
-
     const passwordResult = passwordSchema.safeParse(password);
-    if (!passwordResult.success) {
-      newErrors.password = passwordResult.error.errors[0].message;
-    }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!emailResult.success) nextErrors.email = emailResult.error.errors[0].message;
+    if (!passwordResult.success) nextErrors.password = passwordResult.error.errors[0].message;
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     if (!validateForm()) return;
 
     setIsLoading(true);
-
     try {
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message.includes("Invalid login")) {
-            toast.error("Email ou senha incorretos");
-          } else {
-            toast.error(error.message);
-          }
+          toast.error(error.message.includes("Invalid login") ? "Email ou senha incorretos." : error.message);
           return;
         }
-        toast.success("Login realizado com sucesso!");
-        navigate("/dashboard");
+        toast.success("Acesso confirmado.");
       } else {
         const { error } = await signUp(email, password, fullName, referralCode || undefined);
         if (error) {
-          if (error.message.includes("already registered")) {
-            toast.error("Este email já está cadastrado. Tente fazer login.");
-          } else {
-            toast.error(error.message);
-          }
+          toast.error(
+            error.message.includes("already registered")
+              ? "Este email já está cadastrado. Entre com sua senha."
+              : error.message,
+          );
           return;
         }
-        toast.success("Conta criada com sucesso! Bem-vindo ao Emailnator!");
-        navigate("/dashboard");
+        toast.success("Conta criada. Seu workspace está pronto.");
       }
-    } catch (error) {
-      toast.error("Ocorreu um erro. Tente novamente.");
+
+      navigate(redirectTarget, { replace: true });
+    } catch {
+      toast.error("Não foi possível concluir o acesso. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const toggleMode = () => {
+    setIsLogin((current) => !current);
+    setErrors({});
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-accent/10 blur-3xl" />
-      </div>
+    <div className="grid min-h-dvh bg-background lg:grid-cols-[1.08fr_0.92fr]">
+      <AuthAside />
 
-      <Card className="w-full max-w-md glass-card animate-fade-in relative">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground font-bold text-xl mb-2">
-            E
-          </div>
-          <CardTitle className="text-2xl font-bold">
-            {isLogin ? "Bem-vindo de volta" : "Crie sua conta"}
-          </CardTitle>
-          <CardDescription>
+      <main id="main-content" tabIndex={-1} className="flex min-h-dvh flex-col px-5 py-6 sm:px-10 lg:px-12 xl:px-20">
+        <div className="flex items-center justify-between">
+          <Brand className="lg:hidden" compact />
+          <Button asChild variant="ghost" size="sm" className="ml-auto text-muted-foreground">
+            <Link to="/">
+              <ArrowLeft className="h-4 w-4" />
+              Início
+            </Link>
+          </Button>
+        </div>
+
+        <div className="my-auto w-full max-w-md self-center py-12">
+          <p className="eyebrow">{isLogin ? "Acessar workspace" : "Criar workspace"}</p>
+          <h1 className="mt-5 text-4xl leading-[1.02] sm:text-5xl">
+            {isLogin ? "Continue de onde parou." : "Sua próxima campanha começa aqui."}
+          </h1>
+          <p className="mt-4 text-sm leading-6 text-muted-foreground">
             {isLogin
-              ? "Entre para acessar seus emails e campanhas"
-              : "Comece a gerar emails que convertem"}
-          </CardDescription>
-        </CardHeader>
+              ? "Use seu email e senha para acessar campanhas, templates e créditos."
+              : "Crie uma conta para gerar, editar e organizar suas campanhas."}
+          </p>
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form className="mt-9 space-y-5" onSubmit={handleSubmit} noValidate>
             {!isLogin && (
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nome completo</Label>
+                <Label htmlFor="fullName">Nome <span className="font-normal text-muted-foreground">(opcional)</span></Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <UserRound className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                   <Input
                     id="fullName"
+                    name="name"
                     type="text"
-                    placeholder="Seu nome"
+                    autoComplete="name"
+                    placeholder="Como devemos chamar você?"
                     value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10"
+                    onChange={(event) => setFullName(event.target.value)}
+                    className="h-12 rounded-md bg-card pl-10"
                   />
                 </div>
               </div>
@@ -132,90 +135,99 @@ export default function Auth() {
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
                   id="email"
+                  name="email"
                   type="email"
-                  placeholder="seu@email.com"
+                  inputMode="email"
+                  autoComplete="email"
+                  placeholder="voce@empresa.com"
                   value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setErrors((prev) => ({ ...prev, email: undefined }));
+                  onChange={(event) => {
+                    setEmail(event.target.value);
+                    if (errors.email) setErrors((current) => ({ ...current, email: undefined }));
                   }}
-                  className={`pl-10 ${errors.email ? "border-destructive" : ""}`}
+                  className="h-12 rounded-md bg-card pl-10"
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? "email-error" : undefined}
+                  required
                 />
               </div>
               {errors.email && (
-                <p className="text-xs text-destructive">{errors.email}</p>
+                <p id="email-error" className="text-xs font-medium text-destructive" role="alert">
+                  {errors.email}
+                </p>
               )}
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="password">Senha</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <LockKeyhole className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
                   id="password"
+                  name="password"
                   type="password"
-                  placeholder="••••••••"
+                  autoComplete={isLogin ? "current-password" : "new-password"}
+                  placeholder="Mínimo de 6 caracteres"
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors((prev) => ({ ...prev, password: undefined }));
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    if (errors.password) setErrors((current) => ({ ...current, password: undefined }));
                   }}
-                  className={`pl-10 ${errors.password ? "border-destructive" : ""}`}
+                  className="h-12 rounded-md bg-card pl-10"
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? "password-error" : "password-hint"}
+                  required
                 />
               </div>
-              {errors.password && (
-                <p className="text-xs text-destructive">{errors.password}</p>
-              )}
+              {errors.password ? (
+                <p id="password-error" className="text-xs font-medium text-destructive" role="alert">
+                  {errors.password}
+                </p>
+              ) : !isLogin ? (
+                <p id="password-hint" className="text-xs text-muted-foreground">Use pelo menos 6 caracteres.</p>
+              ) : null}
             </div>
 
             {!isLogin && referralCode && (
-              <div className="rounded-lg bg-accent/10 p-3 text-sm text-accent">
-                🎁 Código de indicação aplicado: <strong>{referralCode}</strong>
+              <div className="border-l-2 border-primary bg-accent/55 px-4 py-3 text-sm" role="status">
+                Código de indicação <strong>{referralCode}</strong> aplicado.
               </div>
             )}
 
-            <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
+            <Button className="h-12 w-full" size="lg" type="submit" disabled={isLoading}>
               {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {isLogin ? "Entrando…" : "Criando conta…"}
+                </>
               ) : (
                 <>
-                  {isLogin ? "Entrar" : "Criar conta grátis"}
-                  <ArrowRight className="ml-2 h-4 w-4" />
+                  {isLogin ? "Entrar" : "Criar conta gratuita"}
+                  <ArrowRight className="h-4 w-4" />
                 </>
               )}
             </Button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isLogin ? (
-                <>
-                  Não tem conta?{" "}
-                  <span className="font-medium text-primary">Criar conta grátis</span>
-                </>
-              ) : (
-                <>
-                  Já tem conta?{" "}
-                  <span className="font-medium text-primary">Fazer login</span>
-                </>
-              )}
+          <div className="mt-7 border-t border-foreground/15 pt-6 text-sm">
+            <span className="text-muted-foreground">
+              {isLogin ? "Ainda não tem uma conta?" : "Já tem uma conta?"}
+            </span>{" "}
+            <button type="button" className="font-semibold text-primary hover:underline" onClick={toggleMode}>
+              {isLogin ? "Criar conta" : "Entrar"}
             </button>
           </div>
 
           {!isLogin && (
-            <p className="mt-4 text-center text-xs text-muted-foreground">
-              Ao criar sua conta, você concorda com nossos Termos de Uso e Política de Privacidade.
+            <p className="mt-5 font-mono text-[0.62rem] uppercase tracking-[0.12em] text-muted-foreground">
+              Plano gratuito · sem cartão para começar
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </main>
     </div>
   );
 }

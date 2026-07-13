@@ -1,29 +1,3 @@
-export interface EmailSequence {
-  id: string;
-  user_id: string;
-  name: string;
-  description?: string;
-  niche?: string;
-  tone?: string;
-  status: "draft" | "active" | "paused";
-  created_at: string;
-  updated_at: string;
-}
-
-export interface SequenceEmail {
-  id: string;
-  sequence_id: string;
-  position: number;
-  name: string;
-  subject: string;
-  preheader?: string;
-  content: string;
-  delay_days: number;
-  trigger_type: "time_delay" | "action" | "condition";
-  created_at: string;
-  updated_at: string;
-}
-
 export const FUNNEL_STAGES = [
   {
     id: 1,
