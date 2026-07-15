@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { RequireAuth, RequirePlan } from "@/app/router/RouteGuards";
 import { RouteFallback } from "@/app/router/RouteFallback";
 
@@ -25,9 +25,11 @@ export function AppRouter() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/email-ai" element={<EmailAI />} />
           <Route path="/history" element={<History />} />
+          <Route path="/editor" element={<Navigate to="/email-builder" replace />} />
           <Route path="/email-builder" element={<EmailBuilder />} />
 
           <Route element={<RequirePlan allowed={["pro", "enterprise"]} />}>
+            <Route path="/funnels" element={<Navigate to="/funnel" replace />} />
             <Route path="/funnel" element={<FunnelBuilder />} />
           </Route>
         </Route>

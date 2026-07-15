@@ -59,6 +59,7 @@ export default function EmailBuilderPage() {
     <div className="h-screen bg-background flex flex-col overflow-hidden">
       <Header />
       <main id="main-content" className="flex-1 overflow-hidden">
+        <h1 className="sr-only">Editor visual de campanha</h1>
         <VisualEmailBuilder
           key={documentId || "new-document"}
           initialBlocks={initialBlocks}

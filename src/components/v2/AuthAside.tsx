@@ -2,8 +2,8 @@ import { Check } from "lucide-react";
 import { Brand } from "@/components/v2/Brand";
 
 const workflow = [
-  "Use o contexto do seu site como referência",
-  "Gere assunto, pré-header e corpo do email",
+  "Oriente a IA com marca, publico e oferta",
+  "Gere emails e funis com contexto",
   "Refine no editor e exporte o HTML",
 ];
 
@@ -14,13 +14,13 @@ export function AuthAside() {
 
       <div className="my-auto max-w-lg py-16">
         <p className="font-mono text-[0.69rem] uppercase tracking-[0.18em] text-primary-foreground/75">
-          Da referência ao rascunho
+          Emailnator Campaign Studio
         </p>
         <h1 className="mt-6 text-5xl leading-[1.02] xl:text-6xl">
-          Uma mesa de criação para campanhas que soam como a sua marca.
+          Entre com uma ideia. Saia com uma campanha editável.
         </h1>
         <p className="mt-6 max-w-md text-base leading-7 text-background/65">
-          O Emailnator organiza contexto, geração e edição em um fluxo direto. Você continua no controle da mensagem.
+          O Emailnator organiza contexto, geracao, edicao e exportacao em um fluxo direto. Voce continua no controle da mensagem.
         </p>
 
         <ol className="mt-10 space-y-4">
@@ -36,7 +36,7 @@ export function AuthAside() {
       </div>
 
       <p className="font-mono text-[0.6rem] uppercase tracking-[0.15em] text-background/40">
-        Emailnator v2 · campaign studio
+        Campanhas com contexto
       </p>
     </aside>
   );

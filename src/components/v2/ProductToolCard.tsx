@@ -20,10 +20,11 @@ export function ProductToolCard({
   onOpen,
 }: ProductToolCardProps) {
   return (
-    <article className="group relative min-h-[18rem] overflow-hidden border border-foreground/20 bg-card p-6 shadow-paper transition hover:-translate-y-1 hover:shadow-lift sm:p-8">
+    <article className="group relative min-h-[18rem] overflow-hidden rounded-lg border border-foreground/15 bg-card p-6 shadow-[var(--shadow-v3-paper)] transition hover:-translate-y-1 hover:shadow-lift sm:p-8">
+      <div className="absolute -right-12 -top-12 h-32 w-32 rounded-full bg-primary/10 blur-2xl transition group-hover:bg-primary/15" aria-hidden="true" />
       <div className="flex items-start justify-between">
         <span className="font-mono text-xs font-semibold text-primary">{index}</span>
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-accent text-primary transition group-hover:rotate-3">
+        <span className="grid h-10 w-10 place-items-center rounded-md bg-accent text-primary transition group-hover:rotate-3">
           <Icon className="h-4 w-4" />
         </span>
       </div>

@@ -79,7 +79,7 @@ export function EmailGenerationForm({
               Direção de marca: <strong className="text-foreground">{brandManual.brand_name}</strong>
             </>
           ) : (
-            "Adicione sua marca para manter consistência entre campanhas."
+            "Adicione sua marca para manter contexto e consistência entre campanhas."
           )}
         </p>
         <BrandManualEditor
@@ -93,14 +93,14 @@ export function EmailGenerationForm({
         />
       </div>
 
-      <Card>
+      <Card className="rounded-lg shadow-[var(--shadow-v3-paper)]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Search className="h-4 w-4 text-primary" />
-            Contexto do site
+            Referência e contexto
           </CardTitle>
           <p className="text-sm text-muted-foreground">
-            Confirme a URL antes de usar um crédito de análise.
+            Use uma URL como fonte de posicionamento antes de gastar um crédito de análise.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -139,11 +139,11 @@ export function EmailGenerationForm({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="rounded-lg shadow-[var(--shadow-v3-paper)]">
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Sparkles className="h-4 w-4 text-primary" />
-            Briefing da campanha
+            Direção da campanha
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -153,7 +153,7 @@ export function EmailGenerationForm({
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground" htmlFor="target-audience">
-              Público-alvo
+              Público e objeções
             </label>
             <Textarea
               id="target-audience"
@@ -168,7 +168,7 @@ export function EmailGenerationForm({
 
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground" htmlFor="custom-offer">
-              Oferta específica <span className="font-normal text-muted-foreground">(opcional)</span>
+              Oferta principal <span className="font-normal text-muted-foreground">(opcional)</span>
             </label>
             <Input
               id="custom-offer"
@@ -189,7 +189,7 @@ export function EmailGenerationForm({
             ) : (
               <Sparkles className="mr-2 h-5 w-5" />
             )}
-            {isGenerating ? "Gerando campanha" : `Gerar email (${totalEmails} restantes)`}
+            {isGenerating ? "Gerando campanha" : `Gerar campanha (${totalEmails} restantes)`}
           </Button>
 
           {!hasEmailCredits && (

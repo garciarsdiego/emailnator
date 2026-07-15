@@ -19,10 +19,10 @@ interface EmailEditorToolbarProps {
 
 export function EmailEditorToolbar(props: EmailEditorToolbarProps) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-background/95 p-3 backdrop-blur">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-b border-foreground/15 bg-background/95 p-3 backdrop-blur">
       <div className="flex items-center gap-2">
         <Tabs value={props.mode} onValueChange={(value) => props.onModeChange(value as EditorMode)}>
-          <TabsList className="h-8">
+          <TabsList className="h-8 rounded-md bg-muted/70">
             <TabsTrigger value="edit" className="h-7 px-3 text-xs">Editar</TabsTrigger>
             <TabsTrigger value="preview" className="h-7 px-3 text-xs"><Eye className="mr-1 h-3.5 w-3.5" />Preview</TabsTrigger>
             <TabsTrigger value="html" className="h-7 px-3 text-xs"><Code className="mr-1 h-3.5 w-3.5" />HTML</TabsTrigger>
@@ -37,7 +37,7 @@ export function EmailEditorToolbar(props: EmailEditorToolbarProps) {
       </div>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={props.onClear}><Trash2 className="mr-1 h-3.5 w-3.5" />Limpar</Button>
-        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={props.onExport}><Download className="mr-1 h-3.5 w-3.5" />HTML</Button>
+        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={props.onExport}><Download className="mr-1 h-3.5 w-3.5" />Exportar HTML</Button>
         {props.canCancel && <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={props.onCancel}>Cancelar</Button>}
         {props.canSave && <Button size="sm" className="h-7 text-xs" onClick={props.onSave} disabled={props.isSaving}><Save className={props.isSaving ? "mr-1 h-3.5 w-3.5 animate-pulse" : "mr-1 h-3.5 w-3.5"} />{props.isSaving ? "Salvando..." : "Salvar"}</Button>}
       </div>

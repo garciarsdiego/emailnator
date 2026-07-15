@@ -1,59 +1,16 @@
-import type { LucideIcon } from "lucide-react";
-import { ArrowRight, Blocks, FileClock, ScanSearch, SplitSquareVertical } from "lucide-react";
+import { ArrowRight, Check, FileText } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Brand } from "@/components/v2/Brand";
-import { CampaignSpecimen } from "@/components/v2/CampaignSpecimen";
+import { BriefingMockup, EditorMockup, FunnelMockup } from "@/components/v3/EditorMockup";
+import { FeatureBento } from "@/components/v3/FeatureBento";
+import { LandingMotion, SectionShell } from "@/components/v3/LandingMotion";
 import { useAuth } from "@/contexts/AuthContext";
 
-const workflow = [
-  {
-    number: "01",
-    title: "Traga o contexto",
-    description: "Informe o nicho e, se quiser, use seu site como referência para a análise de marca.",
-  },
-  {
-    number: "02",
-    title: "Defina a intenção",
-    description: "Escolha o objetivo da campanha, o público, o tom e as orientações que não podem ser ignoradas.",
-  },
-  {
-    number: "03",
-    title: "Gere o primeiro rascunho",
-    description: "Receba opções de assunto, pré-header, CTA e um corpo de email pronto para revisão.",
-  },
-  {
-    number: "04",
-    title: "Edite e leve com você",
-    description: "Ajuste o conteúdo no editor, confira o preview e exporte o HTML para a sua plataforma de envio.",
-  },
-];
-
-const capabilities: Array<{
-  icon: LucideIcon;
-  title: string;
-  description: string;
-}> = [
-  {
-    icon: ScanSearch,
-    title: "Contexto antes da geração",
-    description: "A análise do site ajuda a orientar posicionamento, público e linguagem antes de escrever.",
-  },
-  {
-    icon: SplitSquareVertical,
-    title: "Opções para decidir",
-    description: "Compare variações de assunto, pré-header e CTA sem perder o fio da campanha.",
-  },
-  {
-    icon: Blocks,
-    title: "Edição visual por blocos",
-    description: "Organize texto, imagens e chamadas, alterne o preview e exporte o resultado em HTML.",
-  },
-  {
-    icon: FileClock,
-    title: "Campanhas organizadas",
-    description: "Consulte gerações anteriores e transforme bons rascunhos em ponto de partida para a próxima ação.",
-  },
+const honestPromises = [
+  "Sem envio nativo obrigatorio",
+  "HTML pronto para usar",
+  "Emails e funis em um só lugar",
 ];
 
 export default function Index() {
@@ -62,13 +19,16 @@ export default function Index() {
   const workspaceRoute = user ? "/dashboard" : "/auth?mode=signup";
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-foreground/15 bg-background">
+    <div className="min-h-screen overflow-x-hidden bg-background">
+      <header className="border-b border-foreground/15 bg-background/95 backdrop-blur">
         <nav className="container flex h-20 items-center justify-between" aria-label="Navegação principal">
           <Brand />
           <div className="flex items-center gap-1 sm:gap-3">
-            <a className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground md:block" href="#workflow">
-              Como funciona
+            <a className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground md:block" href="#recursos">
+              Recursos
+            </a>
+            <a className="hidden rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:text-foreground md:block" href="#fluxo">
+              Fluxo
             </a>
             <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link to="/pricing">Planos</Link>
@@ -92,100 +52,133 @@ export default function Index() {
       </header>
 
       <main id="main-content" tabIndex={-1}>
-        <section className="container grid items-center gap-14 pb-24 pt-16 lg:grid-cols-[1.02fr_0.98fr] lg:pb-32 lg:pt-24">
-          <div className="max-w-3xl animate-fade-in-up">
-            <p className="eyebrow">Campanhas com contexto de marca</p>
-            <h1 className="mt-7 text-[clamp(3.3rem,7vw,6.7rem)] leading-[0.9] tracking-[-0.05em]">
-              O primeiro rascunho já começa com direção.
-            </h1>
-            <p className="mt-8 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-              Analise uma referência, defina a intenção e gere assunto, pré-header, corpo e CTA em um só fluxo. Depois, refine no editor e exporte o HTML.
-            </p>
-            <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
-              <Button size="lg" className="px-6" onClick={() => navigate(workspaceRoute)}>
-                {user ? "Continuar criando" : "Criar primeira campanha"}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-              <Button asChild variant="link" className="px-0 text-foreground">
-                <a href="#workflow">Conhecer o fluxo</a>
-              </Button>
-            </div>
-            <p className="mt-6 font-mono text-[0.65rem] uppercase tracking-[0.14em] text-muted-foreground">
-              Plano gratuito disponível · sem cartão para começar
-            </p>
-          </div>
+        <section className="relative overflow-hidden">
+          <div className="absolute right-0 top-0 hidden h-full w-[42%] bg-[hsl(var(--graphite))] lg:block" aria-hidden="true" />
+          <div className="container relative grid min-h-[calc(100dvh-5rem)] items-center gap-12 py-16 lg:grid-cols-[0.92fr_1.08fr] lg:py-20">
+            <LandingMotion>
+              <p className="v3-kicker">Emailnator Campaign Studio</p>
+              <h1 className="mt-8 max-w-5xl v3-display text-[clamp(3.5rem,8vw,7.6rem)] leading-[0.88]">
+                Campanhas com contexto, prontas para editar.
+              </h1>
+              <p className="mt-7 max-w-xl text-lg leading-8 text-muted-foreground sm:text-xl">
+                Um estúdio com IA para transformar marca, oferta e intenção em emails, funis e HTML pronto para usar.
+              </p>
+              <div className="mt-9 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+                <Button size="lg" className="px-6" onClick={() => navigate(workspaceRoute)}>
+                  {user ? "Continuar criando" : "Criar campanha"}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button asChild variant="link" className="px-0 text-foreground">
+                  <a href="#fluxo">Ver como funciona</a>
+                </Button>
+              </div>
+              <p className="mt-10 flex items-center gap-3 text-sm text-muted-foreground">
+                <FileText className="h-4 w-4 text-primary" />
+                Da ideia ao email. Mais contexto, menos retrabalho.
+              </p>
+            </LandingMotion>
 
-          <div className="animate-fade-in [animation-delay:120ms]">
-            <CampaignSpecimen />
+            <LandingMotion delay={0.12} className="relative lg:pl-3">
+              <div className="absolute -bottom-8 -right-8 hidden h-44 w-44 rounded-full bg-primary/20 blur-3xl lg:block" aria-hidden="true" />
+              <EditorMockup className="relative lg:translate-x-6" />
+            </LandingMotion>
           </div>
         </section>
 
-        <section id="workflow" className="border-y border-foreground/15 bg-card/55 scroll-mt-24">
-          <div className="container grid gap-14 py-24 lg:grid-cols-[0.72fr_1.28fr] lg:py-32">
-            <div className="lg:sticky lg:top-32 lg:self-start">
-              <p className="eyebrow">Um fluxo, quatro decisões</p>
-              <h2 className="mt-5 max-w-md text-4xl leading-[1.02] sm:text-5xl">
-                Menos prompt solto. Mais processo de criação.
+        <SectionShell id="fluxo" className="border-y border-foreground/15 bg-card/40">
+          <div className="container grid gap-12 lg:grid-cols-[0.62fr_1.38fr] lg:items-center">
+            <div>
+              <p className="v3-kicker">Contexto e briefing</p>
+              <h2 className="mt-5 max-w-xl v3-display text-5xl leading-[0.95] sm:text-6xl">
+                Antes do texto, a direção.
               </h2>
-              <p className="mt-5 max-w-sm text-sm leading-6 text-muted-foreground">
-                O Emailnator ajuda a estruturar a mensagem. A revisão e o envio continuam sob o seu controle.
+              <p className="mt-6 max-w-sm text-base leading-7 text-muted-foreground">
+                Boas campanhas começam com clareza. Oriente a IA com marca, público, oferta, objeções, tom de voz e referência do site.
               </p>
             </div>
-
-            <ol className="border-t border-foreground/20">
-              {workflow.map((step) => (
-                <li key={step.number} className="grid gap-4 border-b border-foreground/20 py-8 sm:grid-cols-[4rem_0.7fr_1fr] sm:items-start">
-                  <span className="font-mono text-xs font-semibold text-primary">{step.number}</span>
-                  <h3 className="text-2xl leading-tight">{step.title}</h3>
-                  <p className="max-w-lg text-sm leading-6 text-muted-foreground">{step.description}</p>
-                </li>
-              ))}
-            </ol>
+            <BriefingMockup />
           </div>
-        </section>
+        </SectionShell>
 
-        <section className="container py-24 lg:py-32">
-          <div className="grid gap-8 border-b border-foreground/15 pb-10 lg:grid-cols-[1fr_1.1fr] lg:items-end">
-            <div>
-              <p className="eyebrow">Ferramentas que se conectam</p>
-              <h2 className="mt-5 text-4xl leading-none sm:text-5xl">Do contexto ao arquivo final.</h2>
+        <SectionShell id="recursos">
+          <div className="container">
+            <div className="mb-12 max-w-3xl">
+              <p className="v3-kicker">Recursos centrais</p>
+              <h2 className="mt-5 v3-display text-5xl leading-[0.98] sm:text-6xl">
+                Um fluxo para sair do rascunho.
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+                Do armazenamento da marca a exportação do HTML, cada etapa acontece no mesmo lugar.
+              </p>
             </div>
-            <p className="max-w-2xl text-base leading-7 text-muted-foreground lg:justify-self-end">
-              Cada etapa alimenta a próxima. Você não precisa reconstruir o briefing sempre que muda um assunto ou reorganiza um bloco.
-            </p>
+            <FeatureBento />
           </div>
+        </SectionShell>
 
-          <div className="mt-14 grid gap-x-16 gap-y-12 md:grid-cols-2">
-            {capabilities.map(({ icon: Icon, title, description }, index) => (
-              <article key={title} className={index % 2 === 1 ? "md:translate-y-12" : undefined}>
-                <div className="flex items-center gap-4">
-                  <span className="grid h-11 w-11 place-items-center rounded-full bg-accent text-primary">
-                    <Icon className="h-4 w-4" strokeWidth={1.8} />
-                  </span>
-                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.16em] text-muted-foreground">
-                    Recurso {String(index + 1).padStart(2, "0")}
-                  </span>
+        <SectionShell className="v3-graphite-panel">
+          <div className="container">
+            <div className="mb-10 max-w-2xl">
+              <p className="font-mono text-[0.66rem] font-semibold uppercase tracking-[0.16em] text-primary">Editor visual</p>
+              <h2 className="mt-5 v3-display text-5xl leading-[0.98] text-background sm:text-6xl">
+                Edite como peça final, não como prompt.
+              </h2>
+              <p className="mt-5 max-w-xl text-base leading-7 text-background/72">
+                Revise conteúdo, blocos, preview e HTML sem sair do fluxo de campanha.
+              </p>
+            </div>
+            <EditorMockup />
+          </div>
+        </SectionShell>
+
+        <SectionShell>
+          <div className="container">
+            <div className="grid gap-10 lg:grid-cols-[0.58fr_1.42fr] lg:items-start">
+              <div>
+                <p className="v3-kicker">Funis</p>
+                <h2 className="mt-5 v3-display text-5xl leading-[0.98] sm:text-6xl">
+                  Transforme uma campanha em sequência.
+                </h2>
+                <p className="mt-5 max-w-sm text-base leading-7 text-muted-foreground">
+                  Conecte emails com lógica e timing para guiar seu público do primeiro clique até a conversão.
+                </p>
+              </div>
+              <FunnelMockup />
+            </div>
+          </div>
+        </SectionShell>
+
+        <section className="container pb-24 pt-8 lg:pb-32">
+          <div className="relative overflow-hidden rounded-lg border border-foreground/15 bg-card px-6 py-14 shadow-[var(--shadow-v3-paper)] sm:px-12 lg:px-16 lg:py-20">
+            <div className="absolute bottom-0 right-0 h-52 w-52 rounded-full bg-primary/10 blur-3xl" aria-hidden="true" />
+            <div className="relative grid gap-10 lg:grid-cols-[1fr_0.55fr] lg:items-end">
+              <div>
+                <h2 className="max-w-5xl v3-display text-5xl leading-[0.98] sm:text-7xl">
+                  Escreva com direção. Exporte com segurança.
+                </h2>
+                <div className="mt-9 flex flex-col gap-4 sm:flex-row">
+                  <Button size="lg" onClick={() => navigate(workspaceRoute)}>
+                    {user ? "Abrir workspace" : "Criar conta"}
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                  <Button asChild size="lg" variant="outline">
+                    <Link to="/pricing">
+                      Ver planos
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </Button>
                 </div>
-                <h3 className="mt-6 text-3xl">{title}</h3>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-muted-foreground">{description}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className="container pb-24 pt-8 lg:pb-32 lg:pt-20">
-          <div className="relative overflow-hidden border border-foreground/20 bg-secondary px-6 py-14 sm:px-12 lg:grid lg:grid-cols-[1fr_auto] lg:items-end lg:px-16 lg:py-16">
-            <span className="absolute -right-4 -top-16 font-display text-[12rem] leading-none text-primary/10" aria-hidden="true">
-              @
-            </span>
-            <div className="relative max-w-3xl">
-              <p className="eyebrow">Próxima campanha</p>
-              <h2 className="mt-5 text-4xl leading-[1.02] sm:text-6xl">Comece com contexto. Termine com uma mensagem sua.</h2>
+              </div>
+              <ul className="space-y-4">
+                {honestPromises.map((promise) => (
+                  <li key={promise} className="flex items-center gap-3 border-b border-foreground/10 pb-4 text-sm font-medium">
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-accent text-primary">
+                      <Check className="h-4 w-4" />
+                    </span>
+                    {promise}
+                  </li>
+                ))}
+              </ul>
             </div>
-            <Button className="relative mt-9 lg:ml-10 lg:mt-0" size="lg" onClick={() => navigate(workspaceRoute)}>
-              {user ? "Abrir workspace" : "Começar gratuitamente"}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
           </div>
         </section>
       </main>
@@ -195,7 +188,7 @@ export default function Index() {
           <div>
             <Brand compact />
             <p className="mt-4 max-w-sm text-xs leading-5 text-muted-foreground">
-              Criação e exportação de campanhas de email. O disparo é feito na plataforma escolhida por você.
+              Criação, edição e exportação de campanhas de email. O disparo é feito na plataforma escolhida por você.
             </p>
           </div>
           <div className="flex items-center gap-5 text-xs font-medium text-muted-foreground">

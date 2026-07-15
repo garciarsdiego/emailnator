@@ -104,12 +104,12 @@ export default function Auth() {
         <div className="my-auto w-full max-w-md self-center py-12">
           <p className="eyebrow">{isLogin ? "Acessar workspace" : "Criar workspace"}</p>
           <h1 className="mt-5 text-4xl leading-[1.02] sm:text-5xl">
-            {isLogin ? "Continue de onde parou." : "Sua próxima campanha começa aqui."}
+            {isLogin ? "Continue de onde parou." : "Seu próximo briefing começa aqui."}
           </h1>
           <p className="mt-4 text-sm leading-6 text-muted-foreground">
             {isLogin
-              ? "Use seu email e senha para acessar campanhas, templates e créditos."
-              : "Crie uma conta para gerar, editar e organizar suas campanhas."}
+              ? "Use seu email e senha para acessar campanhas, funis, templates e créditos."
+              : "Crie uma conta para gerar, editar e organizar campanhas com contexto."}
           </p>
 
           <form className="mt-9 space-y-5" onSubmit={handleSubmit} noValidate>

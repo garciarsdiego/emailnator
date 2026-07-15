@@ -19,20 +19,20 @@ const planFeatures = {
   free: [
     `${PLANS.free.emails} gerações de email por ciclo`,
     `${PLANS.free.analyses} análise de site por ciclo`,
-    "Gerador orientado e editor visual",
-    "Histórico de campanhas",
+    "Briefing guiado e editor visual",
+    "Histórico de campanhas e documentos",
   ],
   starter: [
     `${PLANS.starter.emails} gerações de email por mês`,
     `${PLANS.starter.analyses} análises de site por mês`,
-    "Gerador orientado e editor visual",
-    "Histórico de campanhas",
+    "Briefing guiado e editor visual",
+    "Histórico de campanhas e documentos",
   ],
   pro: [
     `${PLANS.pro.emails} gerações de email por mês`,
     `${PLANS.pro.analyses} análises de site por mês`,
-    "Gerador orientado e editor visual",
-    "Histórico de campanhas",
+    "Briefing guiado e editor visual",
+    "Histórico de campanhas e documentos",
   ],
 };
 
@@ -125,11 +125,11 @@ export default function Pricing() {
           <div>
             <p className="eyebrow">Planos e créditos</p>
             <h1 className="mt-5 max-w-4xl text-5xl leading-[0.98] sm:text-6xl lg:text-7xl">
-              Escolha pelo volume que você realmente cria.
+              Escolha pelo ritmo de campanhas que você produz.
             </h1>
           </div>
           <p className="max-w-xl text-base leading-7 text-muted-foreground lg:justify-self-end">
-            Todos os planos incluem o gerador orientado, o editor visual e o histórico. O que muda é a quantidade mensal de gerações e análises.
+            Todos os planos incluem briefing guiado, editor visual, histórico e exportação HTML. O que muda é o volume mensal de gerações e análises.
           </p>
         </header>
 
@@ -194,9 +194,9 @@ export default function Pricing() {
               <span className="grid h-10 w-10 place-items-center rounded-full bg-accent text-primary">
                 <CircleDollarSign className="h-4 w-4" />
               </span>
-              <h2 id="credit-packs-title" className="mt-5 text-3xl">Precisa de fôlego extra?</h2>
+              <h2 id="credit-packs-title" className="mt-5 text-3xl">Precisa produzir mais neste ciclo?</h2>
               <p className="mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-                Adicione gerações de email sem trocar o seu plano.
+                Adicione gerações sem trocar seu plano mensal.
               </p>
             </div>
 
@@ -226,7 +226,7 @@ export default function Pricing() {
         </section>
 
         <p className="mx-auto mt-10 max-w-3xl text-center text-xs leading-5 text-muted-foreground">
-          O Emailnator cria, organiza e exporta o conteúdo das campanhas. O disparo é realizado na plataforma de email escolhida por você.
+          O Emailnator cria, organiza e exporta campanhas. O disparo continua na plataforma de email escolhida por você.
         </p>
       </main>
     </div>

@@ -80,11 +80,11 @@ export default function Dashboard() {
               {firstName ? `${firstName}, qual mensagem vamos construir hoje?` : "Qual mensagem vamos construir hoje?"}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-7 text-muted-foreground">
-              Comece pela geração orientada ou abra o editor para montar uma campanha por blocos.
+              Comece pelo briefing de campanha, abra o editor ou continue um funil salvo.
             </p>
           </div>
           <Button size="lg" onClick={() => navigate("/email-ai")}>
-            Nova campanha
+            Criar campanha
             <ArrowRight className="h-4 w-4" />
           </Button>
         </section>
@@ -126,18 +126,18 @@ export default function Dashboard() {
           </div>
           <div className="grid gap-5 lg:grid-cols-2">
             <ProductToolCard
-              index="01 / gerar"
+              index="Briefing"
               title="Gerador orientado"
-              description="Combine contexto do site, objetivo, nicho e tom para criar um rascunho completo de campanha."
-              detail="Assunto · pré-header · conteúdo · CTA"
+              description="Combine marca, público, oferta e tom para criar um rascunho completo de campanha."
+              detail="Briefing, assunto, preheader, conteúdo e CTA"
               icon={WandSparkles}
               onOpen={() => navigate("/email-ai")}
             />
             <ProductToolCard
-              index="02 / editar"
+              index="Editor"
               title="Editor visual"
               description="Monte a campanha em blocos, revise a composição em diferentes larguras e exporte o HTML."
-              detail="Blocos · preview responsivo · exportação"
+              detail="Blocos, preview responsivo e exportação"
               icon={PanelsTopLeft}
               onOpen={() => navigate("/email-builder")}
             />
