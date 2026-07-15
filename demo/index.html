@@ -1,0 +1,2138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Emailnator — Comparação de Design System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Serif+Display:ital@0;1&family=IBM+Plex+Mono:wght@500;600&family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap"
+    rel="stylesheet"
+  />
+  <style>
+    /* ============================================================
+       RESET
+       ============================================================ */
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html {
+      scroll-behavior: smooth;
+    }
+    body {
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: #1a1612;
+      color: #1f1a14;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    button {
+      font: inherit;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: inherit;
+    }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+    ul,
+    ol {
+      list-style: none;
+    }
+
+    /* ============================================================
+       TOP BAR (controle fixo acima do comparison)
+       ============================================================ */
+    .topbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 1.5rem;
+      background: rgba(26, 22, 18, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      color: #f5f1e8;
+      border-bottom: 1px solid rgba(245, 241, 232, 0.08);
+    }
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: 1.05rem;
+      letter-spacing: -0.02em;
+    }
+    .topbar-brand-mark {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: #f5f1e8;
+      color: #1f1a14;
+      font-size: 0.85rem;
+      position: relative;
+    }
+    .topbar-brand-mark::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 8px;
+      height: 8px;
+      background: #c0491f;
+    }
+    .topbar-hint {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(245, 241, 232, 0.7);
+    }
+    .topbar-hint-arrow {
+      display: inline-block;
+      animation: nudge 2s ease-in-out infinite;
+    }
+    @keyframes nudge {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+      50% {
+        transform: translateX(4px);
+      }
+    }
+
+    /* ============================================================
+       COMPARISON CONTAINER
+       ============================================================ */
+    .comparison {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      --pos: 50%;
+    }
+    .side {
+      width: 100%;
+      pointer-events: none;
+    }
+    .side-current {
+      position: absolute;
+      top: 0;
+      left: 0;
+      clip-path: inset(0 calc(100% - var(--pos)) 0 0);
+      z-index: 2;
+    }
+    /* side-new fica em fluxo normal (position: relative) para dar altura
+       ao container .comparison. Caso contrário, ambos absolute => altura 0. */
+    .side-new {
+      position: relative;
+      z-index: 1;
+    }
+    .page {
+      pointer-events: auto;
+      min-height: 100vh;
+    }
+
+    /* ============================================================
+       SHARED TOKENS — Fundação comum (paleta mantida)
+       ============================================================ */
+    :root {
+      /* Paleta que NÃO muda entre os dois (brand core) */
+      --terracotta: #c0491f;
+      --terracotta-deep: #8b3210;
+      --paper: #f5f1e8;
+      --paper-soft: #fbf9f3;
+      --ink: #1f1a14;
+      --ink-soft: #6b5f50;
+      --border-paper: #cfc7b8;
+    }
+
+    /* ============================================================
+       TOKENS — ATUAL (lado esquerdo)
+       ============================================================ */
+    .page-current {
+      --bg: var(--paper);
+      --bg-elev: var(--paper-soft);
+      --fg: var(--ink);
+      --fg-muted: var(--ink-soft);
+      --primary: var(--terracotta);
+      --accent: #f4ddd2;
+      --border: var(--border-paper);
+      --radius: 8px;
+      --shadow-paper: 0 18px 44px -34px rgba(31, 26, 20, 0.45);
+      --shadow-lift: 0 20px 46px -30px rgba(31, 26, 20, 0.55);
+
+      background-color: var(--bg);
+      background-image: radial-gradient(
+        rgba(31, 26, 20, 0.045) 0.65px,
+        transparent 0.65px
+      );
+      background-size: 5px 5px;
+      color: var(--fg);
+      font-family: "DM Sans", system-ui, sans-serif;
+    }
+    .page-current h1,
+    .page-current h2,
+    .page-current h3 {
+      font-family: "DM Serif Display", Georgia, serif;
+      letter-spacing: -0.025em;
+    }
+    .page-current .mono {
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    /* ============================================================
+       TOKENS — PROPOSTO (lado direito)
+       ============================================================ */
+    .page-new {
+      --bg: var(--paper);
+      --bg-elev: var(--paper-soft);
+      --fg: var(--ink);
+      --fg-muted: var(--ink-soft);
+      --primary: var(--terracotta);
+      --primary-bright: #d65a2a;
+      --accent: #f4ddd2;
+      --border: var(--border-paper);
+      --radius: 6px;
+      --shadow-paper: 0 24px 60px -32px rgba(31, 26, 20, 0.5);
+      --shadow-lift: 0 28px 70px -34px rgba(31, 26, 20, 0.62);
+      --shadow-glow: 0 0 80px -20px rgba(192, 73, 31, 0.4);
+
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(rgba(31, 26, 20, 0.05) 0.65px, transparent 0.65px),
+        radial-gradient(
+          ellipse 80% 50% at 70% 0%,
+          rgba(192, 73, 31, 0.06),
+          transparent 60%
+        );
+      background-size: 5px 5px, 100% 100%;
+      color: var(--fg);
+      font-family: "Inter", system-ui, sans-serif;
+    }
+    .page-new h1,
+    .page-new h2,
+    .page-new h3 {
+      font-family: "Inter Tight", "Inter", system-ui, sans-serif;
+      letter-spacing: -0.04em;
+    }
+    .page-new .mono {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    /* ============================================================
+       LAYOUT WRAPPER (comum às duas páginas)
+       ============================================================ */
+    .container {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 0 1.25rem;
+    }
+
+    /* Padding superior para não bater na topbar fixa */
+    .page {
+      padding-top: 56px;
+    }
+
+    /* ============================================================
+       HEADER / NAV (interno de cada page)
+       ============================================================ */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 80px;
+      border-bottom: 1px solid rgba(31, 26, 20, 0.12);
+    }
+    .nav-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .nav-brand-mark {
+      position: relative;
+      display: inline-grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: "DM Serif Display", Georgia, serif;
+      font-size: 1.05rem;
+    }
+    .nav-brand-mark::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      width: 10px;
+      height: 10px;
+      background: var(--primary);
+    }
+    .nav-brand-name {
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      font-size: 1.05rem;
+    }
+    .nav-brand-sub {
+      display: block;
+      font-size: 0.55rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      margin-top: 3px;
+    }
+    .page-new .nav-brand-sub {
+      font-family: "JetBrains Mono", monospace;
+    }
+    .page-current .nav-brand-sub {
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .nav-link {
+      font-size: 0.875rem;
+      color: var(--fg-muted);
+      transition: color 0.2s;
+    }
+    .nav-link:hover {
+      color: var(--fg);
+    }
+
+    /* ============================================================
+       BOTÕES
+       ============================================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 16px;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: var(--paper);
+    }
+    .btn-primary:hover {
+      background: var(--terracotta-deep);
+    }
+    .btn-outline {
+      border: 1px solid var(--border);
+      background: var(--paper);
+      color: var(--fg);
+    }
+    .btn-outline:hover {
+      background: var(--accent);
+    }
+    .btn-ghost {
+      color: var(--fg);
+    }
+    .btn-ghost:hover {
+      background: var(--accent);
+    }
+    .btn-lg {
+      height: 44px;
+      padding: 0 24px;
+    }
+    .btn-sm {
+      height: 36px;
+      padding: 0 12px;
+    }
+
+    /* NOVO: magnetic lift nos botões */
+    .page-new .btn-primary {
+      box-shadow: 0 8px 24px -10px rgba(192, 73, 31, 0.5);
+    }
+    .page-new .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 14px 32px -10px rgba(192, 73, 31, 0.65);
+    }
+
+    /* ============================================================
+       HERO
+       ============================================================ */
+    .hero {
+      display: grid;
+      grid-template-columns: 1.02fr 0.98fr;
+      gap: 56px;
+      align-items: center;
+      padding: 64px 0 96px;
+    }
+    @media (max-width: 980px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding: 40px 0 64px;
+      }
+    }
+    .eyebrow {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.69rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+    .page-new .eyebrow {
+      font-family: "JetBrains Mono", monospace;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .page-new .eyebrow::before {
+      content: "";
+      display: inline-block;
+      width: 18px;
+      height: 1px;
+      background: var(--primary);
+    }
+    .hero-title {
+      margin-top: 28px;
+      font-size: clamp(3.3rem, 7vw, 6.7rem);
+      line-height: 0.9;
+      letter-spacing: -0.05em;
+    }
+    .page-new .hero-title {
+      letter-spacing: -0.055em;
+      background: linear-gradient(
+        180deg,
+        var(--ink) 0%,
+        #3a2f23 100%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .page-new .hero-title em {
+      font-style: normal;
+      background: linear-gradient(120deg, var(--primary), var(--primary-bright));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-sub {
+      margin-top: 32px;
+      max-width: 36rem;
+      font-size: 1.125rem;
+      line-height: 2;
+      color: var(--fg-muted);
+    }
+    @media (min-width: 640px) {
+      .hero-sub {
+        font-size: 1.25rem;
+      }
+    }
+    .hero-actions {
+      margin-top: 36px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+    .hero-meta {
+      margin-top: 24px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+    .page-new .hero-meta {
+      font-family: "JetBrains Mono", monospace;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .page-new .hero-meta::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2e8556;
+      box-shadow: 0 0 0 3px rgba(46, 133, 86, 0.18);
+    }
+
+    /* ============================================================
+       HERO CARD — LADO ATUAL (CampaignSpecimen estático)
+       ============================================================ */
+    .specimen {
+      position: relative;
+      padding: 16px 20px 32px 12px;
+    }
+    .specimen::before {
+      content: "";
+      position: absolute;
+      top: 40px;
+      right: 0;
+      bottom: 0;
+      width: 94%;
+      border: 1px solid rgba(31, 26, 20, 0.2);
+      background: #e3decf;
+      border-radius: var(--radius);
+    }
+    .specimen-panel {
+      position: relative;
+      border: 1px solid var(--border);
+      background: var(--bg-elev);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-paper);
+      overflow: hidden;
+    }
+    .specimen-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .specimen-eyebrow {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.69rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--primary);
+    }
+    .specimen-meta {
+      font-size: 0.75rem;
+      color: var(--fg-muted);
+      margin-top: 4px;
+    }
+    .specimen-icon {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--primary);
+      font-size: 0.85rem;
+    }
+    .specimen-body {
+      display: grid;
+      grid-template-columns: 7rem 1fr;
+    }
+    @media (max-width: 640px) {
+      .specimen-body {
+        grid-template-columns: 1fr;
+      }
+      .specimen-rail {
+        display: none;
+      }
+    }
+    .specimen-rail {
+      border-right: 1px solid var(--border);
+      background: rgba(232, 227, 214, 0.55);
+      padding: 24px 16px;
+    }
+    .specimen-rail-item {
+      margin-bottom: 24px;
+    }
+    .specimen-rail-item:last-child {
+      margin-bottom: 0;
+    }
+    .specimen-rail-num {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.62rem;
+      color: var(--primary);
+    }
+    .specimen-rail-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+    .specimen-content {
+      padding: 28px 20px;
+    }
+    @media (min-width: 640px) {
+      .specimen-content {
+        padding: 28px;
+      }
+    }
+    .specimen-label {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+    .specimen-title {
+      margin-top: 8px;
+      font-size: 2rem;
+      line-height: 1.03;
+    }
+    @media (min-width: 640px) {
+      .specimen-title {
+        font-size: 2.35rem;
+      }
+    }
+    .specimen-text {
+      margin-top: 12px;
+      max-width: 24rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--fg-muted);
+    }
+    .specimen-divider {
+      height: 1px;
+      background: rgba(31, 26, 20, 0.15);
+      margin: 28px 0;
+    }
+    .specimen-checks {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .specimen-check {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+    .specimen-check::before {
+      content: "✓";
+      color: var(--primary);
+      font-weight: 700;
+    }
+    .specimen-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 32px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--primary);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    /* ============================================================
+       HERO CARD — LADO NOVO (EditorMockup vivo)
+       ============================================================ */
+    .editor-mockup {
+      position: relative;
+      padding: 8px;
+    }
+    .editor-mockup::before {
+      content: "";
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      bottom: -20px;
+      left: -20px;
+      background: radial-gradient(
+        ellipse at top right,
+        rgba(192, 73, 31, 0.12),
+        transparent 60%
+      );
+      filter: blur(20px);
+      z-index: 0;
+    }
+    .editor-window {
+      position: relative;
+      z-index: 1;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-paper), var(--shadow-glow);
+      overflow: hidden;
+    }
+    .editor-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(232, 227, 214, 0.4);
+    }
+    .editor-traffic {
+      display: flex;
+      gap: 6px;
+    }
+    .editor-traffic span {
+      display: block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #cfc7b8;
+    }
+    .editor-traffic span:nth-child(1) {
+      background: #e0653b;
+    }
+    .editor-traffic span:nth-child(2) {
+      background: #c77908;
+    }
+    .editor-traffic span:nth-child(3) {
+      background: #2e8556;
+    }
+    .editor-tabs {
+      display: flex;
+      gap: 2px;
+      margin-left: auto;
+    }
+    .editor-tab {
+      padding: 6px 12px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.7rem;
+      color: var(--fg-muted);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .editor-tab.active {
+      background: var(--bg-elev);
+      color: var(--primary);
+      box-shadow: 0 -2px 0 0 var(--primary) inset;
+    }
+    .editor-body {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      min-height: 360px;
+    }
+    @media (max-width: 640px) {
+      .editor-body {
+        grid-template-columns: 1fr;
+      }
+      .editor-sidebar {
+        display: none;
+      }
+    }
+    .editor-sidebar {
+      border-right: 1px solid var(--border);
+      padding: 16px 12px;
+      background: rgba(232, 227, 214, 0.35);
+    }
+    .editor-sidebar-title {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      padding: 0 6px 10px;
+    }
+    .editor-block {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 8px;
+      border-radius: 4px;
+      font-size: 0.78rem;
+      color: var(--fg);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .editor-block:hover {
+      background: var(--accent);
+    }
+    .editor-block.active {
+      background: var(--accent);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .editor-block-icon {
+      display: grid;
+      place-items: center;
+      width: 18px;
+      height: 18px;
+      font-size: 0.7rem;
+      opacity: 0.7;
+    }
+    .editor-canvas {
+      position: relative;
+      padding: 24px 28px;
+      background: var(--bg-elev);
+    }
+    .editor-canvas-label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      margin-bottom: 6px;
+    }
+    .editor-canvas-subject {
+      font-family: "Inter Tight", sans-serif;
+      font-size: 1.6rem;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .editor-cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1.2em;
+      vertical-align: text-bottom;
+      background: var(--primary);
+      margin-left: 2px;
+      animation: blink 1s steps(2) infinite;
+    }
+    @keyframes blink {
+      0%,
+      50% {
+        opacity: 1;
+      }
+      51%,
+      100% {
+        opacity: 0;
+      }
+    }
+    .editor-canvas-preview {
+      margin-top: 18px;
+      padding: 16px;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+      background: rgba(232, 227, 214, 0.3);
+    }
+    .editor-canvas-preview p {
+      font-size: 0.78rem;
+      line-height: 1.6;
+      color: var(--fg-muted);
+    }
+    .editor-canvas-preview strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+    .editor-canvas-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding: 8px 14px;
+      background: var(--primary);
+      color: var(--paper);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      box-shadow: 0 4px 12px -4px rgba(192, 73, 31, 0.5);
+    }
+    .editor-statusbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-top: 1px solid var(--border);
+      background: rgba(232, 227, 214, 0.4);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.65rem;
+      color: var(--fg-muted);
+    }
+    .editor-status-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #2e8556;
+      margin-right: 6px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(1.3);
+      }
+    }
+
+    /* Floating AI hint badge */
+    .editor-ai-badge {
+      position: absolute;
+      top: -16px;
+      right: -16px;
+      z-index: 2;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 999px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: 0 12px 32px -10px rgba(31, 26, 20, 0.5);
+      animation: float-badge 4s ease-in-out infinite;
+    }
+    @keyframes float-badge {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+    .editor-ai-badge::before {
+      content: "✦";
+      color: var(--primary);
+    }
+
+    /* ============================================================
+       STATS BAND (apenas NOVO — ATUAL tem placeholder vazio)
+       ============================================================ */
+    .stats-band {
+      border-top: 1px solid rgba(31, 26, 20, 0.12);
+      border-bottom: 1px solid rgba(31, 26, 20, 0.12);
+      background: rgba(251, 249, 243, 0.55);
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      padding: 48px 0;
+    }
+    @media (max-width: 768px) {
+      .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 32px 0;
+      }
+    }
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .stat-item + .stat-item {
+      border-left: 1px solid var(--border);
+      padding-left: 32px;
+    }
+    @media (max-width: 768px) {
+      .stat-item + .stat-item {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid var(--border);
+        padding-top: 24px;
+      }
+    }
+    .stat-number {
+      font-family: "Inter Tight", sans-serif;
+      font-size: clamp(2.8rem, 6vw, 4.5rem);
+      line-height: 1;
+      letter-spacing: -0.045em;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      background: linear-gradient(180deg, var(--ink) 0%, #4a3d2e 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-number em {
+      font-style: normal;
+      color: var(--primary);
+      -webkit-text-fill-color: var(--primary);
+    }
+    .stat-label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      margin-top: 4px;
+    }
+    .stat-sub {
+      font-size: 0.78rem;
+      color: var(--fg-muted);
+      margin-top: 6px;
+      max-width: 18rem;
+      line-height: 1.5;
+    }
+
+    /* Placeholder atual (mostra diferença de densidade) */
+    .stats-empty {
+      padding: 96px 0;
+      text-align: center;
+      border-top: 1px solid rgba(31, 26, 20, 0.12);
+      border-bottom: 1px solid rgba(31, 26, 20, 0.12);
+      color: var(--fg-muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    /* ============================================================
+       WORKFLOW (4 passos)
+       ============================================================ */
+    .workflow {
+      padding: 96px 0;
+      border-bottom: 1px solid rgba(31, 26, 20, 0.12);
+    }
+    @media (max-width: 768px) {
+      .workflow {
+        padding: 64px 0;
+      }
+    }
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: 0.72fr 1.28fr;
+      gap: 56px;
+    }
+    @media (max-width: 980px) {
+      .workflow-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .workflow-aside {
+      position: sticky;
+      top: 96px;
+      align-self: start;
+    }
+    @media (max-width: 980px) {
+      .workflow-aside {
+        position: static;
+      }
+    }
+    .workflow-title {
+      margin-top: 20px;
+      max-width: 28rem;
+      font-size: clamp(2.25rem, 4.5vw, 3rem);
+      line-height: 1.02;
+    }
+    .workflow-intro {
+      margin-top: 20px;
+      max-width: 24rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--fg-muted);
+    }
+    .workflow-list {
+      border-top: 1px solid rgba(31, 26, 20, 0.2);
+    }
+    .workflow-step {
+      display: grid;
+      grid-template-columns: 4rem 0.7fr 1fr;
+      gap: 16px;
+      padding: 32px 0;
+      border-bottom: 1px solid rgba(31, 26, 20, 0.2);
+      align-items: start;
+    }
+    @media (max-width: 640px) {
+      .workflow-step {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+    }
+    .workflow-num {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .page-new .workflow-num {
+      font-family: "JetBrains Mono", monospace;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .page-new .workflow-num::before {
+      content: "";
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 0 3px rgba(192, 73, 31, 0.18);
+    }
+    .workflow-step-title {
+      font-size: 1.5rem;
+      line-height: 1.2;
+    }
+    .workflow-step-desc {
+      max-width: 28rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--fg-muted);
+    }
+
+    /* NOVO: progress bar visual */
+    .page-new .workflow-step {
+      position: relative;
+    }
+    .page-new .workflow-step::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(
+        180deg,
+        var(--primary) 0%,
+        rgba(192, 73, 31, 0.1) 100%
+      );
+      transform: scaleY(0);
+      transform-origin: top;
+      transition: transform 0.4s;
+    }
+
+    /* ============================================================
+       CAPABILITIES GRID
+       ============================================================ */
+    .capabilities {
+      padding: 96px 0;
+    }
+    @media (max-width: 768px) {
+      .capabilities {
+        padding: 64px 0;
+      }
+    }
+    .capabilities-header {
+      display: grid;
+      grid-template-columns: 1fr 1.1fr;
+      gap: 32px;
+      align-items: end;
+      padding-bottom: 40px;
+      border-bottom: 1px solid rgba(31, 26, 20, 0.15);
+    }
+    @media (max-width: 768px) {
+      .capabilities-header {
+        grid-template-columns: 1fr;
+      }
+    }
+    .capabilities-title {
+      margin-top: 20px;
+      font-size: clamp(2.25rem, 4.5vw, 3rem);
+      line-height: 1;
+    }
+    .capabilities-intro {
+      max-width: 36rem;
+      font-size: 1rem;
+      line-height: 1.75;
+      color: var(--fg-muted);
+      justify-self: end;
+    }
+    @media (max-width: 768px) {
+      .capabilities-intro {
+        justify-self: start;
+      }
+    }
+    .capabilities-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 48px 64px;
+      margin-top: 56px;
+    }
+    @media (max-width: 768px) {
+      .capabilities-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+    }
+    .capability {
+      transition: transform 0.3s;
+    }
+    .capability:nth-child(even) {
+      transform: translateY(48px);
+    }
+    @media (max-width: 768px) {
+      .capability:nth-child(even) {
+        transform: none;
+      }
+    }
+    .capability-head {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .capability-icon {
+      display: grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: var(--primary);
+      font-size: 0.9rem;
+    }
+    .capability-tag {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.62rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+    }
+    .page-new .capability-tag {
+      font-family: "JetBrains Mono", monospace;
+    }
+    .capability-title {
+      margin-top: 24px;
+      font-size: 1.875rem;
+    }
+    .capability-desc {
+      margin-top: 12px;
+      max-width: 36rem;
+      font-size: 0.875rem;
+      line-height: 1.5;
+      color: var(--fg-muted);
+    }
+
+    /* NOVO: hover com lift */
+    .page-new .capability {
+      padding: 24px;
+      margin: -24px;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .page-new .capability:hover {
+      background: rgba(251, 249, 243, 0.7);
+      box-shadow: var(--shadow-paper);
+    }
+    .page-new .capability-icon {
+      transition: transform 0.3s;
+    }
+    .page-new .capability:hover .capability-icon {
+      transform: rotate(-8deg) scale(1.05);
+    }
+
+    /* ============================================================
+       LOGO MARQUEE (apenas NOVO)
+       ============================================================ */
+    .logo-band {
+      padding: 64px 0;
+      border-top: 1px solid rgba(31, 26, 20, 0.12);
+      border-bottom: 1px solid rgba(31, 26, 20, 0.12);
+      overflow: hidden;
+    }
+    .logo-band-title {
+      text-align: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--fg-muted);
+      margin-bottom: 32px;
+    }
+    .logo-track {
+      display: flex;
+      gap: 64px;
+      animation: marquee 30s linear infinite;
+      width: max-content;
+    }
+    @keyframes marquee {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(-50%);
+      }
+    }
+    .logo-band:hover .logo-track {
+      animation-play-state: paused;
+    }
+    .logo-item {
+      display: grid;
+      place-items: center;
+      height: 32px;
+      padding: 0 16px;
+      font-family: "Inter Tight", sans-serif;
+      font-size: 1.125rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--fg-muted);
+      opacity: 0.6;
+      transition: opacity 0.2s;
+      white-space: nowrap;
+    }
+    .logo-item:hover {
+      opacity: 1;
+    }
+
+    /* Placeholder atual (vazio) */
+    .logo-empty {
+      padding: 96px 0;
+      text-align: center;
+      border-top: 1px solid rgba(31, 26, 20, 0.12);
+      border-bottom: 1px solid rgba(31, 26, 20, 0.12);
+      color: var(--fg-muted);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.5;
+    }
+
+    /* ============================================================
+       FINAL CTA
+       ============================================================ */
+    .final-cta {
+      padding: 32px 0 96px;
+    }
+    @media (max-width: 768px) {
+      .final-cta {
+        padding: 32px 0 64px;
+      }
+    }
+    .cta-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(31, 26, 20, 0.2);
+      background: #e3decf;
+      padding: 56px 48px;
+      border-radius: var(--radius);
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 40px;
+      align-items: end;
+    }
+    @media (max-width: 768px) {
+      .cta-card {
+        grid-template-columns: 1fr;
+        padding: 40px 28px;
+      }
+    }
+    .cta-glyph {
+      position: absolute;
+      right: -16px;
+      top: -64px;
+      font-family: "DM Serif Display", serif;
+      font-size: 12rem;
+      line-height: 1;
+      color: rgba(192, 73, 31, 0.1);
+      pointer-events: none;
+    }
+    .page-new .cta-glyph {
+      font-family: "Inter Tight", sans-serif;
+      font-weight: 800;
+      font-size: 16rem;
+      background: linear-gradient(
+        180deg,
+        rgba(192, 73, 31, 0.12),
+        rgba(192, 73, 31, 0.02)
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .cta-content {
+      position: relative;
+      max-width: 48rem;
+    }
+    .cta-title {
+      margin-top: 20px;
+      font-size: clamp(2.25rem, 5vw, 3.75rem);
+      line-height: 1.02;
+    }
+    .cta-actions {
+      position: relative;
+    }
+
+    /* ============================================================
+       FOOTER
+       ============================================================ */
+    .footer {
+      border-top: 1px solid rgba(31, 26, 20, 0.15);
+      padding: 32px 0;
+    }
+    .footer-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 24px;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+    .footer-copy {
+      font-size: 0.75rem;
+      color: var(--fg-muted);
+      max-width: 24rem;
+      line-height: 1.625;
+      margin-top: 16px;
+    }
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--fg-muted);
+    }
+    .footer-links a:hover {
+      color: var(--fg);
+    }
+    .footer-year {
+      font-family: "IBM Plex Mono", monospace;
+    }
+    .page-new .footer-year {
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    /* ============================================================
+       DRAG HANDLE
+       ============================================================ */
+    .handle {
+      position: fixed;
+      top: 56px;
+      left: var(--pos);
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(
+        180deg,
+        transparent 0%,
+        rgba(245, 241, 232, 0.4) 8%,
+        rgba(245, 241, 232, 0.9) 50%,
+        rgba(245, 241, 232, 0.4) 92%,
+        transparent 100%
+      );
+      transform: translateX(-1px);
+      z-index: 10;
+      cursor: ew-resize;
+      touch-action: none;
+    }
+    .handle:focus-visible {
+      outline: none;
+    }
+    .handle-grip {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: grid;
+      place-items: center;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: #1a1612;
+      border: 2px solid #f5f1e8;
+      box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6),
+        0 0 0 4px rgba(245, 241, 232, 0.08);
+      color: #f5f1e8;
+      transition: transform 0.2s, box-shadow 0.2s;
+      pointer-events: auto;
+    }
+    .handle-grip:hover {
+      transform: translate(-50%, -50%) scale(1.08);
+      box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.7),
+        0 0 0 6px rgba(245, 241, 232, 0.12);
+    }
+    .handle-grip:active {
+      transform: translate(-50%, -50%) scale(0.96);
+    }
+    .handle-grip svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    /* Floating labels — fixed para permanecerem visíveis durante scroll */
+    .side-label {
+      position: fixed;
+      top: 80px;
+      z-index: 9;
+      pointer-events: none;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 6px 12px;
+      border-radius: 999px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .label-current {
+      left: 24px;
+      background: rgba(31, 26, 20, 0.85);
+      color: #f5f1e8;
+      border: 1px solid rgba(245, 241, 232, 0.15);
+    }
+    .label-new {
+      right: 24px;
+      background: rgba(192, 73, 31, 0.95);
+      color: #fbf9f3;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px -8px rgba(192, 73, 31, 0.5);
+    }
+
+    /* Percent badge — fixed para ficar sempre visível no viewport */
+    .percent-badge {
+      position: fixed;
+      bottom: 32px;
+      left: var(--pos);
+      transform: translateX(-50%);
+      z-index: 11;
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      padding: 8px 14px;
+      background: rgba(26, 22, 18, 0.92);
+      color: #f5f1e8;
+      border-radius: 999px;
+      border: 1px solid rgba(245, 241, 232, 0.12);
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.75rem;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+    }
+    .percent-badge span {
+      font-weight: 600;
+    }
+    .percent-badge em {
+      font-style: normal;
+      color: rgba(245, 241, 232, 0.5);
+      font-size: 0.65rem;
+    }
+
+    /* ============================================================
+       RESPONSIVE — topbar
+       ============================================================ */
+    @media (max-width: 640px) {
+      .topbar {
+        padding: 0.7rem 1rem;
+      }
+      .topbar-hint {
+        font-size: 0.6rem;
+      }
+      .topbar-hint-text {
+        display: none;
+      }
+      .handle-grip {
+        width: 44px;
+        height: 44px;
+      }
+      .side-label {
+        top: 70px;
+        font-size: 0.55rem;
+        padding: 4px 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- ============================================================
+       TOPBAR (controle fixo)
+       ============================================================ -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <span class="topbar-brand-mark">E</span>
+      <span>Emailnator · Demo</span>
+    </div>
+    <div class="topbar-hint">
+      <span class="topbar-hint-text">Arraste para comparar</span>
+      <span class="topbar-hint-arrow">←→</span>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       COMPARISON
+       ============================================================ -->
+  <main class="comparison" id="comparison">
+
+    <!-- =====================================================
+         LADO DIREITO (NOVO) — renderizado por baixo
+         ===================================================== -->
+    <div class="side side-new">
+      <div class="page page-new">
+
+        <!-- NAV -->
+        <header class="container">
+          <nav class="nav">
+            <div class="nav-brand">
+              <span class="nav-brand-mark">E</span>
+              <span>
+                <span class="nav-brand-name">Emailnator</span>
+                <span class="nav-brand-sub">Campaign studio</span>
+              </span>
+            </div>
+            <div class="nav-actions">
+              <a href="#workflow" class="nav-link">Como funciona</a>
+              <button class="btn btn-ghost btn-sm">Planos</button>
+              <button class="btn btn-primary btn-sm">Criar conta</button>
+            </div>
+          </nav>
+        </header>
+
+        <!-- HERO -->
+        <section class="container hero">
+          <div>
+            <span class="eyebrow">Campanhas com contexto de marca</span>
+            <h1 class="hero-title">O primeiro rascunho já começa <em>com direção</em>.</h1>
+            <p class="hero-sub">
+              Analise uma referência, defina a intenção e gere assunto, pré-header, corpo e CTA em um só fluxo. Depois, refine no editor e exporte o HTML.
+            </p>
+            <div class="hero-actions">
+              <button class="btn btn-primary btn-lg">Criar primeira campanha →</button>
+              <button class="btn btn-ghost">Conhecer o fluxo</button>
+            </div>
+            <p class="hero-meta">Plano gratuito disponível · sem cartão para começar</p>
+          </div>
+
+          <!-- EDITOR MOCKUP VIVO -->
+          <div class="editor-mockup">
+            <div class="editor-ai-badge">Gerando com IA</div>
+            <div class="editor-window">
+              <div class="editor-titlebar">
+                <div class="editor-traffic"><span></span><span></span><span></span></div>
+                <div class="editor-tabs">
+                  <span class="editor-tab active">editor</span>
+                  <span class="editor-tab">preview</span>
+                  <span class="editor-tab">html</span>
+                </div>
+              </div>
+              <div class="editor-body">
+                <aside class="editor-sidebar">
+                  <div class="editor-sidebar-title">Blocos</div>
+                  <div class="editor-block active">
+                    <span class="editor-block-icon">T</span> Texto
+                  </div>
+                  <div class="editor-block">
+                    <span class="editor-block-icon">▤</span> Botão
+                  </div>
+                  <div class="editor-block">
+                    <span class="editor-block-icon">◑</span> Imagem
+                  </div>
+                  <div class="editor-block">
+                    <span class="editor-block-icon">↔</span> Divider
+                  </div>
+                  <div class="editor-block">
+                    <span class="editor-block-icon">@</span> Social
+                  </div>
+                  <div class="editor-block">
+                    <span class="editor-block-icon">∷</span> Produto
+                  </div>
+                </aside>
+                <div class="editor-canvas">
+                  <div class="editor-canvas-label">Assunto</div>
+                  <h3 class="editor-canvas-subject">Sua próxima peça favorita chegou<span class="editor-cursor"></span></h3>
+                  <div class="editor-canvas-preview">
+                    <p>
+                      Olá <strong>{primeiro_nome}</strong>, a nova coleção chegou. Peças pensadas para repetir — no trabalho, no fim de semana e no que vier depois.
+                    </p>
+                    <button class="editor-canvas-button">Ver a coleção →</button>
+                  </div>
+                </div>
+              </div>
+              <div class="editor-statusbar">
+                <span><span class="editor-status-dot"></span>Salvo há 2 segundos</span>
+                <span>v2 · exportável</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- STATS BAND -->
+        <section class="stats-band">
+          <div class="container">
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-number">196<em>k+</em></span>
+                <span class="stat-label">Marcas ativas</span>
+                <p class="stat-sub">De solo founders a equipes de marketing estabelecidas.</p>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">1.7<em>M</em></span>
+                <span class="stat-label">Emails gerados</span>
+                <p class="stat-sub">Campanhas criadas com contexto de marca nos últimos 12 meses.</p>
+              </div>
+              <div class="stat-item">
+                <span class="stat-number">97<em>%</em></span>
+                <span class="stat-label">Taxa de entrega</span>
+                <p class="stat-sub">HTML validado para os principais clientes de email.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- WORKFLOW -->
+        <section class="container workflow" id="workflow">
+          <div class="workflow-grid">
+            <div class="workflow-aside">
+              <span class="eyebrow">Um fluxo, quatro decisões</span>
+              <h2 class="workflow-title">Menos prompt solto. Mais processo de criação.</h2>
+              <p class="workflow-intro">
+                O Emailnator ajuda a estruturar a mensagem. A revisão e o envio continuam sob o seu controle.
+              </p>
+            </div>
+            <ol class="workflow-list">
+              <li class="workflow-step">
+                <span class="workflow-num">01</span>
+                <h3 class="workflow-step-title">Traga o contexto</h3>
+                <p class="workflow-step-desc">Informe o nicho e, se quiser, use seu site como referência para a análise de marca.</p>
+              </li>
+              <li class="workflow-step">
+                <span class="workflow-num">02</span>
+                <h3 class="workflow-step-title">Defina a intenção</h3>
+                <p class="workflow-step-desc">Escolha o objetivo da campanha, o público, o tom e as orientações que não podem ser ignoradas.</p>
+              </li>
+              <li class="workflow-step">
+                <span class="workflow-num">03</span>
+                <h3 class="workflow-step-title">Gere o primeiro rascunho</h3>
+                <p class="workflow-step-desc">Receba opções de assunto, pré-header, CTA e um corpo de email pronto para revisão.</p>
+              </li>
+              <li class="workflow-step">
+                <span class="workflow-num">04</span>
+                <h3 class="workflow-step-title">Edite e leve com você</h3>
+                <p class="workflow-step-desc">Ajuste o conteúdo no editor, confira o preview e exporte o HTML para a sua plataforma de envio.</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- CAPABILITIES -->
+        <section class="container capabilities">
+          <div class="capabilities-header">
+            <div>
+              <span class="eyebrow">Ferramentas que se conectam</span>
+              <h2 class="capabilities-title">Do contexto ao arquivo final.</h2>
+            </div>
+            <p class="capabilities-intro">
+              Cada etapa alimenta a próxima. Você não precisa reconstruir o briefing sempre que muda um assunto ou reorganiza um bloco.
+            </p>
+          </div>
+
+          <div class="capabilities-grid">
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">⌖</span>
+                <span class="capability-tag">Recurso 01</span>
+              </div>
+              <h3 class="capability-title">Contexto antes da geração</h3>
+              <p class="capability-desc">A análise do site ajuda a orientar posicionamento, público e linguagem antes de escrever.</p>
+            </article>
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">⇅</span>
+                <span class="capability-tag">Recurso 02</span>
+              </div>
+              <h3 class="capability-title">Opções para decidir</h3>
+              <p class="capability-desc">Compare variações de assunto, pré-header e CTA sem perder o fio da campanha.</p>
+            </article>
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">▦</span>
+                <span class="capability-tag">Recurso 03</span>
+              </div>
+              <h3 class="capability-title">Edição visual por blocos</h3>
+              <p class="capability-desc">Organize texto, imagens e chamadas, alterne o preview e exporte o resultado em HTML.</p>
+            </article>
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">◴</span>
+                <span class="capability-tag">Recurso 04</span>
+              </div>
+              <h3 class="capability-title">Campanhas organizadas</h3>
+              <p class="capability-desc">Consulte gerações anteriores e transforme bons rascunhos em ponto de partida para a próxima ação.</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- LOGO MARQUEE -->
+        <section class="logo-band">
+          <p class="logo-band-title">Usado por equipes em produtos que você conhece</p>
+          <div class="logo-track">
+            <span class="logo-item">Framer</span>
+            <span class="logo-item">Linear</span>
+            <span class="logo-item">Perplexity</span>
+            <span class="logo-item">Granola</span>
+            <span class="logo-item">Clerk</span>
+            <span class="logo-item">Sketch</span>
+            <span class="logo-item">Reuters</span>
+            <span class="logo-item">Conductor</span>
+            <!-- duplicado para loop infinito -->
+            <span class="logo-item">Framer</span>
+            <span class="logo-item">Linear</span>
+            <span class="logo-item">Perplexity</span>
+            <span class="logo-item">Granola</span>
+            <span class="logo-item">Clerk</span>
+            <span class="logo-item">Sketch</span>
+            <span class="logo-item">Reuters</span>
+            <span class="logo-item">Conductor</span>
+          </div>
+        </section>
+
+        <!-- FINAL CTA -->
+        <section class="container final-cta">
+          <div class="cta-card">
+            <span class="cta-glyph">@</span>
+            <div class="cta-content">
+              <span class="eyebrow">Próxima campanha</span>
+              <h2 class="cta-title">Comece com contexto. Termine com uma mensagem sua.</h2>
+            </div>
+            <div class="cta-actions">
+              <button class="btn btn-primary btn-lg">Começar gratuitamente →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="container footer">
+          <div class="footer-grid">
+            <div>
+              <div class="nav-brand">
+                <span class="nav-brand-mark">E</span>
+                <span>
+                  <span class="nav-brand-name">Emailnator</span>
+                </span>
+              </div>
+              <p class="footer-copy">
+                Criação e exportação de campanhas de email. O disparo é feito na plataforma escolhida por você.
+              </p>
+            </div>
+            <div class="footer-links">
+              <a href="#">Planos</a>
+              <a href="#">Entrar</a>
+              <span class="footer-year">© 2026</span>
+            </div>
+          </div>
+        </footer>
+
+      </div>
+    </div>
+
+    <!-- =====================================================
+         LADO ESQUERDO (ATUAL) — clipado por cima
+         ===================================================== -->
+    <div class="side side-current">
+      <div class="page page-current">
+
+        <!-- NAV -->
+        <header class="container">
+          <nav class="nav">
+            <div class="nav-brand">
+              <span class="nav-brand-mark">E</span>
+              <span>
+                <span class="nav-brand-name">Emailnator</span>
+                <span class="nav-brand-sub">Campaign studio</span>
+              </span>
+            </div>
+            <div class="nav-actions">
+              <a href="#workflow" class="nav-link">Como funciona</a>
+              <button class="btn btn-ghost btn-sm">Planos</button>
+              <button class="btn btn-primary btn-sm">Criar conta</button>
+            </div>
+          </nav>
+        </header>
+
+        <!-- HERO -->
+        <section class="container hero">
+          <div>
+            <p class="eyebrow">Campanhas com contexto de marca</p>
+            <h1 class="hero-title">O primeiro rascunho já começa com direção.</h1>
+            <p class="hero-sub">
+              Analise uma referência, defina a intenção e gere assunto, pré-header, corpo e CTA em um só fluxo. Depois, refine no editor e exporte o HTML.
+            </p>
+            <div class="hero-actions">
+              <button class="btn btn-primary btn-lg">Criar primeira campanha →</button>
+              <button class="btn btn-ghost">Conhecer o fluxo</button>
+            </div>
+            <p class="hero-meta">Plano gratuito disponível · sem cartão para começar</p>
+          </div>
+
+          <!-- CAMPAIGN SPECIMEN (estático) -->
+          <div class="specimen">
+            <article class="specimen-panel">
+              <header class="specimen-header">
+                <div>
+                  <p class="specimen-eyebrow">Exemplo de composição</p>
+                  <p class="specimen-meta">Campanha promocional · tom direto</p>
+                </div>
+                <span class="specimen-icon">✦</span>
+              </header>
+              <div class="specimen-body">
+                <div class="specimen-rail">
+                  <div class="specimen-rail-item">
+                    <span class="specimen-rail-num">01</span>
+                    <p class="specimen-rail-label">Assunto</p>
+                  </div>
+                  <div class="specimen-rail-item">
+                    <span class="specimen-rail-num">02</span>
+                    <p class="specimen-rail-label">Pré-header</p>
+                  </div>
+                  <div class="specimen-rail-item">
+                    <span class="specimen-rail-num">03</span>
+                    <p class="specimen-rail-label">Corpo</p>
+                  </div>
+                  <div class="specimen-rail-item">
+                    <span class="specimen-rail-num">04</span>
+                    <p class="specimen-rail-label">Ação</p>
+                  </div>
+                </div>
+                <div class="specimen-content">
+                  <p class="specimen-label">Assunto</p>
+                  <h2 class="specimen-title">Sua próxima peça favorita chegou.</h2>
+                  <p class="specimen-text">
+                    Conheça a coleção pensada para repetir — no trabalho, no fim de semana e no que vier depois.
+                  </p>
+                  <div class="specimen-divider"></div>
+                  <div class="specimen-checks">
+                    <div class="specimen-check">Contexto da marca aplicado</div>
+                    <div class="specimen-check">Variações de assunto</div>
+                    <div class="specimen-check">Conteúdo pronto para editar</div>
+                  </div>
+                  <a href="#" class="specimen-cta">Ver a coleção →</a>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- STATS BAND (vazio — para equalizar altura) -->
+        <div class="stats-empty">— sem bloco de estatísticas —</div>
+
+        <!-- WORKFLOW -->
+        <section class="container workflow" id="workflow">
+          <div class="workflow-grid">
+            <div class="workflow-aside">
+              <p class="eyebrow">Um fluxo, quatro decisões</p>
+              <h2 class="workflow-title">Menos prompt solto. Mais processo de criação.</h2>
+              <p class="workflow-intro">
+                O Emailnator ajuda a estruturar a mensagem. A revisão e o envio continuam sob o seu controle.
+              </p>
+            </div>
+            <ol class="workflow-list">
+              <li class="workflow-step">
+                <span class="workflow-num">01</span>
+                <h3 class="workflow-step-title">Traga o contexto</h3>
+                <p class="workflow-step-desc">Informe o nicho e, se quiser, use seu site como referência para a análise de marca.</p>
+              </li>
+              <li class="workflow-step">
+                <span class="workflow-num">02</span>
+                <h3 class="workflow-step-title">Defina a intenção</h3>
+                <p class="workflow-step-desc">Escolha o objetivo da campanha, o público, o tom e as orientações que não podem ser ignoradas.</p>
+              </li>
+              <li class="workflow-step">
+                <span class="workflow-num">03</span>
+                <h3 class="workflow-step-title">Gere o primeiro rascunho</h3>
+                <p class="workflow-step-desc">Receba opções de assunto, pré-header, CTA e um corpo de email pronto para revisão.</p>
+              </li>
+              <li class="workflow-step">
+                <span class="workflow-num">04</span>
+                <h3 class="workflow-step-title">Edite e leve com você</h3>
+                <p class="workflow-step-desc">Ajuste o conteúdo no editor, confira o preview e exporte o HTML para a sua plataforma de envio.</p>
+              </li>
+            </ol>
+          </div>
+        </section>
+
+        <!-- CAPABILITIES -->
+        <section class="container capabilities">
+          <div class="capabilities-header">
+            <div>
+              <p class="eyebrow">Ferramentas que se conectam</p>
+              <h2 class="capabilities-title">Do contexto ao arquivo final.</h2>
+            </div>
+            <p class="capabilities-intro">
+              Cada etapa alimenta a próxima. Você não precisa reconstruir o briefing sempre que muda um assunto ou reorganiza um bloco.
+            </p>
+          </div>
+
+          <div class="capabilities-grid">
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">⌖</span>
+                <span class="capability-tag">Recurso 01</span>
+              </div>
+              <h3 class="capability-title">Contexto antes da geração</h3>
+              <p class="capability-desc">A análise do site ajuda a orientar posicionamento, público e linguagem antes de escrever.</p>
+            </article>
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">⇅</span>
+                <span class="capability-tag">Recurso 02</span>
+              </div>
+              <h3 class="capability-title">Opções para decidir</h3>
+              <p class="capability-desc">Compare variações de assunto, pré-header e CTA sem perder o fio da campanha.</p>
+            </article>
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">▦</span>
+                <span class="capability-tag">Recurso 03</span>
+              </div>
+              <h3 class="capability-title">Edição visual por blocos</h3>
+              <p class="capability-desc">Organize texto, imagens e chamadas, alterne o preview e exporte o resultado em HTML.</p>
+            </article>
+            <article class="capability">
+              <div class="capability-head">
+                <span class="capability-icon">◴</span>
+                <span class="capability-tag">Recurso 04</span>
+              </div>
+              <h3 class="capability-title">Campanhas organizadas</h3>
+              <p class="capability-desc">Consulte gerações anteriores e transforme bons rascunhos em ponto de partida para a próxima ação.</p>
+            </article>
+          </div>
+        </section>
+
+        <!-- LOGO BAND (vazio) -->
+        <div class="logo-empty">— sem prova social —</div>
+
+        <!-- FINAL CTA -->
+        <section class="container final-cta">
+          <div class="cta-card">
+            <span class="cta-glyph">@</span>
+            <div class="cta-content">
+              <p class="eyebrow">Próxima campanha</p>
+              <h2 class="cta-title">Comece com contexto. Termine com uma mensagem sua.</h2>
+            </div>
+            <div class="cta-actions">
+              <button class="btn btn-primary btn-lg">Começar gratuitamente →</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="container footer">
+          <div class="footer-grid">
+            <div>
+              <div class="nav-brand">
+                <span class="nav-brand-mark">E</span>
+                <span>
+                  <span class="nav-brand-name">Emailnator</span>
+                </span>
+              </div>
+              <p class="footer-copy">
+                Criação e exportação de campanhas de email. O disparo é feito na plataforma escolhida por você.
+              </p>
+            </div>
+            <div class="footer-links">
+              <a href="#">Planos</a>
+              <a href="#">Entrar</a>
+              <span class="footer-year">© 2026</span>
+            </div>
+          </div>
+        </footer>
+
+      </div>
+    </div>
+
+    <!-- =====================================================
+         LABELS FLUTUANTES
+         ===================================================== -->
+    <span class="side-label label-current">Atual</span>
+    <span class="side-label label-new">Proposto</span>
+
+    <!-- PERCENT BADGE -->
+    <div class="percent-badge" id="percentBadge">
+      <span id="percentValue">50</span><em>%</em>
+    </div>
+
+    <!-- =====================================================
+         DRAG HANDLE
+         ===================================================== -->
+    <div class="handle" id="handle" role="separator" aria-orientation="vertical" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" aria-label="Arraste para comparar os designs" tabindex="0">
+      <div class="handle-grip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="8 6 4 12 8 18"></polyline>
+          <polyline points="16 6 20 12 16 18"></polyline>
+        </svg>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ============================================================
+       SCRIPT — Drag, keyboard, touch, click-to-move
+       ============================================================ -->
+  <script>
+    (function () {
+      const comparison = document.getElementById("comparison");
+      const handle = document.getElementById("handle");
+      const percentValue = document.getElementById("percentValue");
+
+      let isDragging = false;
+      let currentPos = 50;
+
+      function setPosition(percent) {
+        currentPos = Math.max(0, Math.min(100, percent));
+        comparison.style.setProperty("--pos", currentPos + "%");
+        handle.setAttribute("aria-valuenow", Math.round(currentPos));
+        percentValue.textContent = Math.round(currentPos);
+      }
+
+      function handlePointerMove(e) {
+        if (!isDragging) return;
+        const rect = comparison.getBoundingClientRect();
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const percent = ((clientX - rect.left) / rect.width) * 100;
+        setPosition(percent);
+      }
+
+      function startDrag(e) {
+        isDragging = true;
+        document.body.style.userSelect = "none";
+        e.preventDefault();
+      }
+
+      function stopDrag() {
+        isDragging = false;
+        document.body.style.userSelect = "";
+      }
+
+      // Mouse
+      handle.addEventListener("mousedown", startDrag);
+      window.addEventListener("mousemove", handlePointerMove);
+      window.addEventListener("mouseup", stopDrag);
+
+      // Touch
+      handle.addEventListener("touchstart", startDrag, { passive: false });
+      window.addEventListener("touchmove", handlePointerMove, { passive: false });
+      window.addEventListener("touchend", stopDrag);
+
+      // Click anywhere on the comparison track to jump
+      // (mas ignora cliques em elementos interativos para não atrapalhar)
+      comparison.addEventListener("click", function (e) {
+        if (e.target === handle || handle.contains(e.target)) return;
+        if (e.target.closest(".handle")) return;
+        // Pula se o clique foi em botão, link ou outro elemento interativo
+        if (e.target.closest("button, a, input, textarea, select, [role='button'], .editor-tab, .editor-block")) return;
+        const rect = comparison.getBoundingClientRect();
+        const percent = ((e.clientX - rect.left) / rect.width) * 100;
+        setPosition(percent);
+      });
+
+      // Keyboard arrows
+      handle.addEventListener("keydown", function (e) {
+        const step = e.shiftKey ? 10 : 2;
+        if (e.key === "ArrowLeft") {
+          setPosition(currentPos - step);
+          e.preventDefault();
+        }
+        if (e.key === "ArrowRight") {
+          setPosition(currentPos + step);
+          e.preventDefault();
+        }
+        if (e.key === "Home") {
+          setPosition(0);
+          e.preventDefault();
+        }
+        if (e.key === "End") {
+          setPosition(100);
+          e.preventDefault();
+        }
+      });
+
+      // Init
+      setPosition(50);
+    })();
+  </script>
+</body>
+</html>
