@@ -168,3 +168,84 @@ impacto no bundle de produção), seguidas de re-validação completa do zero
   typecheck`, `npm run test -- --run` (140 testes, 20 arquivos — 13 a mais que
   os 127/19 reportados pelo agente de testes, pelos 13 novos testes de
   `sanitize.ts`), `npm run deadcode`, `npm run build`.
+
+## Onda 2 — Item 18: testes de `auth.ts` e `stripe-client.ts` (esm-tests)
+
+Fecha a pendência registrada acima ("`auth.ts`/`stripe-client.ts` ... não
+foram cobertos por teste automatizado nesta auditoria"), aplicando a mesma
+técnica de alias do Vitest já usada para `sanitize-html`.
+
+- **`vitest.config.ts`**: dois novos aliases em `resolve.alias`, resolvendo os
+  imports runtime `https://esm.sh/...` desses dois módulos para as cópias
+  locais em `node_modules` (mesmo pin de versão do import Deno):
+  - `"https://esm.sh/@supabase/supabase-js@2.89.0"` → `"@supabase/supabase-js"`
+    (já era `dependencies` de produção — usado de verdade pelo frontend em
+    `src/integrations/supabase/client.ts` — nenhuma instalação nova
+    necessária);
+  - `"https://esm.sh/stripe@18.5.0"` → `"stripe"` (nova devDependency,
+    `stripe@18.5.0`, pin exato igual ao import Deno, mesmo padrão do
+    `sanitize-html@2.17.0`).
+- **`supabase/functions/_shared/auth.test.ts`** (18 testes): `createServiceClient`
+  e `requireUser` cobertos fim a fim. Como `requireUser` chama
+  `userClient.auth.getUser(token)` (I/O real), o alias sozinho não bastava —
+  o módulo `@supabase/supabase-js` (resolvido) é mockado com `vi.mock` +
+  `vi.hoisted` para controlar `createClient`/`auth.getUser` sem rede. Cobre:
+  ausência/formato inválido do header `Authorization`, token igual à anon key
+  (rejeitado — não pode ser usado para se passar por usuário autenticado),
+  `getUser` retornando erro ou `user: null`, esquema `bearer` case-insensitive,
+  variáveis de ambiente Supabase ausentes/em branco (`SERVER_MISCONFIGURED`),
+  e o contrato de retorno no caminho feliz (`{ user, token, userClient,
+  serviceClient }`, com o client de usuário recebendo a anon key + o token do
+  chamador em `Authorization`, e um client de service role separado).
+- **`supabase/functions/_shared/stripe-client.test.ts`** (9 testes): `stripeClient()`
+  testado contra o pacote `stripe` real (via alias) — sem mock, mesma
+  abordagem usada para `sanitize-html`, já que construir um `Stripe` não faz
+  I/O de rede. Cobre: `STRIPE_SECRET_KEY` ausente/vazia/só espaços
+  (`AppError STRIPE_NOT_CONFIGURED`, 503, `expose: false` — confirmado que
+  `errorMessage()` nunca vaza a mensagem interna), instância `Stripe` real
+  retornada com `apiVersion` fixado em `2025-08-27.basil`, namespaces de
+  recurso usados pelo restante do código (`subscriptions`, `customers`,
+  `paymentIntents`, `charges`, `checkout.sessions`), `httpClient` baseado em
+  `fetch` (`Stripe.createFetchHttpClient()`, necessário no runtime Deno edge
+  — sem isso o SDK tentaria usar módulos `http`/`https` do Node) e ausência de
+  cache entre chamadas.
+- `knip` não acusou nada: `stripe` já é importado de verdade em
+  `stripe-client.test.ts` (para os `toBeInstanceOf(Stripe)`), então não
+  precisou de `ignoreDependencies` — diferente de `sanitize-html`, que só é
+  referenciado através do alias.
+- Suíte completa validada do zero: `npm run lint`, `npm run typecheck`,
+  `npm run test -- --run` (**165 testes, 22 arquivos** — 25 a mais que os
+  140/20 anteriores), `npm run deadcode`, `npm run build`. Todas verdes.
+
+## Onda 2 — item ci-gitleaks: secret-scan no CI
+
+Não existia nenhum workflow de CI no repositório. Adicionado
+`.github/workflows/ci.yml` com dois jobs independentes:
+
+- **`secret-scan`**: `actions/checkout@v4` com `fetch-depth: 0` (histórico
+  completo) + `gitleaks/gitleaks-action@v2`, que lê `.gitleaks.toml` na raiz
+  do repositório. `GITLEAKS_LICENSE` não deveria ser necessário porque o
+  remote (`github.com/garciarsdiego/email-muse`) é conta pessoal, não
+  organização — a confirmar na primeira execução real do Actions, caso o
+  repositório tenha sido transferido para uma org.
+- **`web`**: `actions/setup-node@v4` (Node 22, cache `npm`) + `npm ci` +
+  `npm run lint` + `npm run typecheck` + `npm run test` + `npm run build`,
+  espelhando o `npm run check` local (exceto `knip`, que fica de fora do CI
+  por enquanto).
+- Criado `.gitleaks.toml` na raiz com `[extend] useDefault = true` (herda o
+  ruleset padrão do gitleaks) e um `[allowlist]` que ignora paths de baixo
+  risco (`.env.example`, `supabase/functions/.env.example`,
+  `package-lock.json`, `deno.lock`) e faz allowlist explícita de 4 commits
+  históricos onde a chave anon/publishable do Supabase ficou versionada em
+  `.env` antes do `.gitignore` cobrir o arquivo (era Lovable) — já
+  documentado em `docs/security-v2.md` como exposição conhecida e não
+  sensível (chave pública por design, protegida por RLS). Sem essa allowlist
+  o job `secret-scan` falharia permanentemente por um segredo já
+  classificado como seguro. As 4 SHAs completas foram conferidas nesta
+  validação e existem no histórico do repositório (`git cat-file -t`).
+- **Verificação do finalizador**: sintaxe de `.github/workflows/ci.yml`
+  validada com `js-yaml` (parse sem erros, chaves e blocos `${{ }}`
+  corretos). `npm run lint`, `npm run typecheck`, `npm run test -- --run`
+  (165/22) e `npm run build` re-executados do zero nesta mesma sessão,
+  incorporando também o item esm-tests acima — todos verdes, confirmando que
+  o job `web` do CI passaria na primeira execução.
