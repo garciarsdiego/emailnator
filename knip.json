@@ -9,5 +9,9 @@
     "*.{ts,js}"
   ],
   "ignoreExportsUsedInFile": true,
-  "ignore": ["src/integrations/supabase/types.ts"]
+  "ignore": ["src/integrations/supabase/types.ts"],
+  "ignoreDependencies": [
+    "sanitize-html",
+    "@types/sanitize-html"
+  ]
 }
