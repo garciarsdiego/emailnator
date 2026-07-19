@@ -44,14 +44,18 @@ export async function readJson(req: Request): Promise<unknown> {
 
 export function errorResponse(req: Request, error: unknown, requestId: string): Response {
   const code = errorCode(error);
-  logError("request_failed", error, { requestId, code });
+  const appError = error instanceof AppError ? error : undefined;
+  // Internal diagnostics (database codes, provider statuses) go to the
+  // structured server log; the client only receives details from errors
+  // explicitly marked as exposable.
+  logError("request_failed", error, { requestId, code, ...(appError?.details ?? {}) });
   return jsonResponse(
     req,
     {
       error: errorMessage(error),
       code,
       requestId,
-      ...(error instanceof AppError && error.details ? { details: error.details } : {}),
+      ...(appError?.expose && appError.details ? { details: appError.details } : {}),
     },
     errorStatus(error),
   );

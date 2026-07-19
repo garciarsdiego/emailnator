@@ -5,6 +5,14 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  // Fail fast with an actionable message instead of letting the SDK throw
+  // opaque runtime errors later. Values live in .env (see .env.example).
+  throw new Error(
+    "Supabase environment is not configured: define VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY (see .env.example).",
+  );
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 

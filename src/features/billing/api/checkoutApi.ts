@@ -1,12 +1,21 @@
 import { z } from "zod";
 import { invokeEdgeFunction } from "@/shared/api/edgeFunctions";
 
+// z.string().url() alone accepts any parseable URL (including javascript:).
+// These URLs are handed to window.open/location.assign, so restrict to https.
+const httpsUrlSchema = z
+  .string()
+  .url()
+  .refine((value) => value.startsWith("https://"), {
+    message: "URL de redirecionamento inválida",
+  });
+
 const checkoutResponseSchema = z.object({
-  url: z.string().url(),
+  url: httpsUrlSchema,
   sessionId: z.string().min(1),
 });
 
-const portalResponseSchema = z.object({ url: z.string().url() });
+const portalResponseSchema = z.object({ url: httpsUrlSchema });
 
 export async function createCheckout(productKey: string, idempotencyKey?: string): Promise<string> {
   const data = await invokeEdgeFunction<{ productKey: string }, unknown>(
