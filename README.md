@@ -38,11 +38,15 @@ No PowerShell, use `Copy-Item .env.example .env`. Preencha apenas as três vari�
 npm run dev       # servidor local em 127.0.0.1:8080
 npm run lint      # ESLint
 npm run typecheck # TypeScript strict
-npm run test      # Vitest
+npm run test      # Vitest (roda uma vez e sai)
+npm run test:watch # Vitest em modo watch
 npm run deadcode  # arquivos, exports e dependências sem uso
 npm run build     # build de produção
-npm run check     # todos os gates acima
+npm run preview   # serve o build de produção localmente
+npm run check     # todos os gates acima, na ordem: lint, typecheck, test, deadcode, build
 ```
+
+O `npm run test` cobre `src/**/*.test.{ts,tsx}` (componentes, hooks e regras de negócio do frontend) e `supabase/functions/**/*.test.ts` (módulos compartilhados das Edge Functions: validação, proteção contra SSRF, rate limit, créditos, sanitização de HTML e processamento do webhook Stripe). Esses testes rodam em Node/Vitest, não em Deno; `Deno.env`/`Deno.resolveDns` são simulados via stub por teste (ver `supabase/functions/_shared/test-support.ts`). Módulos que importam pacotes reais via `https://esm.sh/...` no runtime resolvem esse import para a cópia local em `node_modules` via alias em `vitest.config.ts` (ver `sanitize.ts`, testado com a devDependency `sanitize-html`); `auth.ts` e `stripe-client.ts` ainda não têm teste automatizado — ver pendências na auditoria mais recente em `CHANGELOG-AUDITORIA.md`.
 
 ## Supabase e serviços externos
 
@@ -74,6 +78,11 @@ Cadastre no Stripe o endpoint `https://<project-id>.supabase.co/functions/v1/str
 
 Veja [Arquitetura V2](docs/architecture-v2.md) e [Segurança V2](docs/security-v2.md) para decisões e limites do sistema.
 
-## Estado desta branch
+## Checklist antes de publicar
 
-A branch `codex/v2-refactor` contém a implementação local. Antes de publicar, configure segredos, aplique as migrations em um ambiente de staging, cadastre o webhook e execute `npm run check`.
+Antes de fazer deploy de uma branch de trabalho para produção:
+
+1. Configure os segredos de backend (Supabase, Stripe, IA, Firecrawl) no ambiente de destino — nunca no `.env` do frontend.
+2. Aplique as migrations em um ambiente de staging antes de produção (`supabase db push`).
+3. Cadastre/atualize o endpoint do webhook Stripe.
+4. Rode `npm run check` (lint, typecheck, test, deadcode, build) e confirme que os cinco gates passam.
