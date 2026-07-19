@@ -1,0 +1,39 @@
+# Gitleaks configuration for this repository.
+# CI runs a secret scan on every push and pull request (see the "secret-scan"
+# job in .github/workflows/ci.yml) to block credentials, tokens, and real .env
+# files from entering git history.
+
+title = "email-muse gitleaks config"
+
+[extend]
+# Inherit the default gitleaks ruleset (API keys, JWTs, private keys, etc.).
+useDefault = true
+
+[allowlist]
+description = "Known safe exceptions"
+paths = [
+  # Placeholder-only templates; never contain real values.
+  '''\.env\.example$''',
+  '''supabase/functions/\.env\.example$''',
+  # Lockfiles contain high-entropy integrity hashes, not secrets.
+  '''package-lock\.json$''',
+  '''deno\.lock$''',
+]
+commits = [
+  # Historical commits where a real .env with the Supabase *publishable*
+  # (anon) key was versioned before .gitignore covered it (era Lovable). The
+  # anon key is public by design and protected by RLS — see
+  # docs/security-v2.md, "Exposição histórica conhecida (auditoria 2026-07)".
+  # No service_role, Stripe, or other real secret was ever found in history.
+  #
+  # 73066ee and 4f0beee are the two commits that actually *added* the .env
+  # content (gitleaks only flags additions, confirmed via full-history scan);
+  # 2f748b8 and 9124129 are the commits that *removed* it again and are kept
+  # here for traceability with docs/security-v2.md. Allowlisted so
+  # full-history scans of the existing history stay green while new leaks
+  # still fail the build.
+  "73066eedb4d8a1be8419771e43c1d01cfe848dee",
+  "4f0beee975f3935e66b17ea1c17b6c67989d5394",
+  "2f748b867e4ca5e33901038df75d13be9010f5ee",
+  "912412988f7f20c9d8f6977b2a227a4798a4ad9b",
+]
