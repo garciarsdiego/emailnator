@@ -12,6 +12,8 @@
 - allowlist de produtos/preços Stripe e deduplicação de eventos;
 - bloqueio de IPs privados, redirecionamentos e protocolos indevidos na análise de URL;
 - sanitização do conteúdo, validação de URLs/CSS e preview em iframe sandboxed;
+- Content-Security-Policy injetada no build de produção (`vite.config.ts`) como defesa em profundidade, além de `referrer-policy` em `index.html`; se o host de deploy enviar CSP via header, mantenha as duas políticas sincronizadas (o header prevalece);
+- erros de Edge Functions só expõem `details` ao cliente quando o `AppError` é marcado como exposable; diagnósticos internos (códigos de banco/provedor) ficam apenas no log estruturado;
 - dependências sem vulnerabilidades conhecidas no `npm audit` desta entrega.
 
 ## Fluxo de créditos
@@ -47,6 +49,18 @@ Faça backup e valide esse comportamento em staging antes do rollout. Se houver 
 - restrinja `APP_ORIGIN`/`ALLOWED_ORIGINS` aos hosts reais.
 - gire qualquer segredo que já tenha sido publicado no histórico Git.
 - monitore `stripe_events`, `generation_jobs`, `credit_ledger` e logs estruturados.
+
+### Exposição histórica conhecida (auditoria 2026-07)
+
+O arquivo `.env` do frontend foi versionado em commits antigos (entre eles
+`73066ee`, `2f748b8` e `9124129`, era Lovable) antes de entrar no `.gitignore`.
+O conteúdo exposto foi apenas `VITE_SUPABASE_PROJECT_ID`, `VITE_SUPABASE_URL` e
+`VITE_SUPABASE_PUBLISHABLE_KEY` — a chave anon/publishable (role `anon`), que é
+pública por design e protegida por RLS. Nenhuma `service_role`, chave Stripe ou
+outro segredo real foi encontrado em nenhum commit do histórico. Ainda assim,
+por consistência com a política acima, recomenda-se girar a publishable key no
+painel do Supabase em uma janela de manutenção; nenhuma mudança de código é
+necessária além de atualizar o `.env` local e as variáveis do host de deploy.
 
 ## Limite conhecido de reembolso
 

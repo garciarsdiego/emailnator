@@ -46,6 +46,10 @@ export async function reversePurchasedPack(options: {
   if (!item?.emailCredits || item.mode !== "payment") return;
   const paidAmount = intent.amount_received || intent.amount;
   const ratio = paidAmount > 0 ? Math.min(1, options.reversalAmount / paidAmount) : 1;
+  // Known limitation (docs/security-v2.md, "Limite conhecido de reembolso"):
+  // repeated partial refunds of the same pack round each event independently,
+  // so the aggregate may drift by one credit. Full refunds and chargebacks
+  // (ratio = 1) are exact. Fixing this requires a cumulative monetary ledger.
   const credits = Math.max(1, Math.min(item.emailCredits, Math.round(item.emailCredits * ratio)));
   const { error } = await options.serviceClient.rpc("apply_credit_adjustment", {
     p_user_id: userId,
