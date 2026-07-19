@@ -44,7 +44,16 @@ export function DraggableBlock({
         isSelected ? "border-primary shadow-md" : "border-transparent hover:border-muted-foreground/30",
         isDragging && "opacity-50 z-50"
       )}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
       {/* Drag handle and actions */}
       <div className={cn(

@@ -9,9 +9,9 @@ interface NicheSelectorProps {
 export function NicheSelector({ value, onChange }: NicheSelectorProps) {
   return (
     <div className="space-y-3">
-      <label className="text-sm font-medium text-foreground">
+      <span className="text-sm font-medium text-foreground">
         Selecione o nicho do seu e-commerce
-      </label>
+      </span>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7">
         {NICHES.map((niche) => (
           <button

@@ -34,9 +34,9 @@ interface CampaignTypeSelectorProps {
 export function CampaignTypeSelector({ value, onChange }: CampaignTypeSelectorProps) {
   return (
     <div className="space-y-3">
-      <label className="text-sm font-medium text-foreground">
+      <span className="text-sm font-medium text-foreground">
         Tipo de campanha
-      </label>
+      </span>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
         {CAMPAIGN_TYPES.map((type) => (
           <button

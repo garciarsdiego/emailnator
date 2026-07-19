@@ -9,9 +9,9 @@ interface ToneSelectorProps {
 export function ToneSelector({ value, onChange }: ToneSelectorProps) {
   return (
     <div className="space-y-3">
-      <label className="text-sm font-medium text-foreground">
+      <span className="text-sm font-medium text-foreground">
         Tom da mensagem
-      </label>
+      </span>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {TONES.map((tone) => (
           <button
