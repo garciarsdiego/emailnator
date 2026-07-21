@@ -1,5 +1,7 @@
 # Emailnator 2.0
 
+> Status, roadmap e fronteira de seguranÃ§a: [PUBLIC_RELEASE.md](PUBLIC_RELEASE.md). Licenciado sob a [MIT](LICENSE).
+
 Workspace para gerar, editar, organizar e exportar campanhas de email. A V2 mantém React, Vite e Supabase, mas reorganiza o produto em módulos de domínio, move cobrança de créditos para o servidor e substitui fluxos simulados por persistência real.
 
 ## O que está incluído
